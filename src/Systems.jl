@@ -119,7 +119,7 @@ PHPSystem is a struct containing
     Xc dimensionless condenser range
     Xe dimensionless evaporater range
 """
-
+# add type names!
 struct PHPSystem
     tube
     evaporator
