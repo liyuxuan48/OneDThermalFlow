@@ -21,6 +21,7 @@ PHPSystem is a struct containing
 struct Tube
     L::Float64
     L2D::Float64
+    alpha::Float64
 end
 
 """
