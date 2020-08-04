@@ -102,8 +102,6 @@ PHPSystem is a struct containing
 struct VaporPlug
     γ::Float64
     P::Array{Float64,1}
-    θ::Array{Float64,1}
-    M::Array{Float64,1}
 end
 
 
