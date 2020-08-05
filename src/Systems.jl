@@ -81,8 +81,9 @@ PHPSystem is a struct containing
 struct LiquidSlug
     γ::Float64
     ω0::Array{Float64,1}
-    ζ::Array{Float64,1}
+    ℘::Array{Float64,1}
     Xp::Array{Tuple{Float64,Float64},1}
+    dXdt::Array{Tuple{Float64,Float64},1}
 end
 
 """
