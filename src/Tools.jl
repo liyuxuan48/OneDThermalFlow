@@ -60,9 +60,9 @@ function getheight(Xp,L2D,alpha)
 end
 
 function XMtovec(Xp,dXdt,M)
-    if (length(Xp) == length(dXdt)) && (2 * length(Xp) == length(M) + 1)
+    if (length(Xp) == length(dXdt)) && (length(Xp) + 1 == length(M))
 
-        u=zeros(3*2*length(Xp)-1)
+        u=zeros(5*length(Xp)+1)
 
         for i = 1:length(Xp)
 
