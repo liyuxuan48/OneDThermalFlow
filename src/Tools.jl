@@ -1,6 +1,6 @@
 module Tools
 
-export getheight
+export getheight,XMtovec,vectoXM,XptoLvaporplug,XptoLliquidslug
 
 """
     this function's inputs are uu and gamma
@@ -47,10 +47,7 @@ end
     this function uses perfect gas state function to get tourhop
 """
 
-function getheight(sys)
-    Xp=sys.liquidslug.Xp
-    L2D=sys.tube.L2D
-    alpha=sys.tube.alpha
+function getheight(Xp,L2D,alpha)
 
     height=deepcopy(Xp)
 
@@ -61,5 +58,102 @@ function getheight(sys)
 
     return height
 end
+
+function XMtovec(Xp,dXdt,M)
+    if (length(Xp) == length(dXdt)) && (2 * length(Xp) == length(M) + 1)
+
+        u=zeros(3*2*length(Xp)-1)
+
+        for i = 1:length(Xp)
+
+            # input Xp
+            u[2*i-1] = Xp[i][1]
+            u[2*i] = Xp[i][end]
+
+            # input dXdt
+            u[2*length(Xp) + 2*i-1] = dXdt[i][1]
+            u[2*length(Xp) + 2*i] = dXdt[i][end]
+        end
+
+        for i = 1:length(M)
+            # input M
+            u[4*length(Xp) + i] = M[i]
+        end
+    else
+        println("the lengthes of X and dXdt and M do not match!")
+    end
+
+    return u
+
+end
+
+function vectoXM(u)
+
+    maxindex = Integer( (length(u) + 1)/3/2 )
+
+    Xp = map(tuple, zeros(maxindex), zeros(maxindex))
+    dXdt = map(tuple, zeros(maxindex), zeros(maxindex))
+    M = zeros(2*maxindex-1)
+
+    for i = 1:maxindex
+
+        # input Xp
+        Xp[i] = (u[2*i-1],u[2*i])
+
+        # input dXdt
+        dXdt[i] = (u[2*maxindex + 2*i-1],u[2*maxindex + 2*i])
+    end
+
+    for i = 1:(2*maxindex-1)
+
+        # input M
+        M[i] = u[4*maxindex + i]
+
+    end
+
+    return Xp,dXdt,M
+
+end
+
+function XptoLvaporplug(Xp,L)
+
+    maxindex = length(Xp) + 1
+    Lvaporplug = zeros(maxindex)
+
+    Lvaporplug[1] = Xp[1][1]-0.0
+    Lvaporplug[end] = L-Xp[end][end]
+
+    if maxindex > 2
+        for i = 2:maxindex-1
+
+            Lvaporplug[i] = Xp[i][1] - Xp[i-1][end]
+
+        end
+    end
+
+    return Lvaporplug
+
+end
+
+function XptoLliquidslug(Xp)
+
+    Lliquidslug = zeros(length(Xp))
+
+
+        for i = 1: length(Xp)
+
+        Lliquidslug[i] = Xp[i][end] - Xp[i][1]
+
+        end
+
+    return Lliquidslug
+
+end
+
+
+
+
+
+
 
 end
