@@ -1,6 +1,6 @@
 module Tools
 
-export getheight,XMtovec,vectoXM,XptoLvaporplug,XptoLliquidslug
+export getheight,XMtovec,vectoXM,XptoLvaporplug,XptoLliquidslug,getXpvapor,XptoLevapoverlap,oneevapoverlap,overlap
 
 """
     this function's inputs are uu and gamma
@@ -150,7 +150,40 @@ function XptoLliquidslug(Xp)
 
 end
 
+function getXpvapor(Xp,L)
+    Xpvapor=deepcopy(Xp)
 
+    Xpvapor[1]=(0.0,Xp[1][1])
+
+    for i = 2:(length(Xp))
+        Xpvapor[i]=(Xp[i-1][end],Xp[i][1])
+    end
+
+    push!(Xpvapor,(Xp[end][end],L))
+
+    return Xpvapor
+end
+
+function XptoLevapoverlap(Xpvapor,Xe)
+    Loverlap = zeros(length(Xpvapor))
+    for i = 1:length(Xpvapor)
+        for j = 1:length(Xe)
+            if overlap(Xpvapor[i],Xe[j])
+            Loverlap[i] += oneevapoverlap(Xpvapor[i],Xe[j])
+            end
+        end
+    end
+
+    return Loverlap
+end
+
+function oneevapoverlap(oneXpvapor,oneXe)
+    return min(oneXpvapor[end],oneXe[end]) - max(oneXpvapor[1],oneXe[1])
+end
+
+function overlap(oneXpvapor,oneXe)
+    return ( (oneXpvapor[end] >= oneXe[1]) || (oneXpvapor[1] <= oneXe[end]) ) && (oneXpvapor[end] > oneXe[1]) && (oneXpvapor[1] < oneXe[end])
+end
 
 
 
