@@ -1,6 +1,6 @@
 module Tools
 
-export getheight,XMtovec,vectoXM,XptoLvaporplug,XptoLliquidslug,getXpvapor,XptoLevapoverlap,oneevapoverlap,overlap
+export getheight,XMtovec,vectoXM,XptoLvaporplug,XptoLliquidslug,getXpvapor,XptoLoverlap,oneoverlap,ifoverlap
 
 """
     this function's inputs are uu and gamma
@@ -89,11 +89,11 @@ end
 
 function vectoXM(u)
 
-    maxindex = Integer( (length(u) + 1)/3/2 )
+    maxindex = Integer( (length(u) - 1)/5 )
 
     Xp = map(tuple, zeros(maxindex), zeros(maxindex))
     dXdt = map(tuple, zeros(maxindex), zeros(maxindex))
-    M = zeros(2*maxindex-1)
+    M = zeros(maxindex+1)
 
     for i = 1:maxindex
 
@@ -104,7 +104,7 @@ function vectoXM(u)
         dXdt[i] = (u[2*maxindex + 2*i-1],u[2*maxindex + 2*i])
     end
 
-    for i = 1:(2*maxindex-1)
+    for i = 1:(maxindex+1)
 
         # input M
         M[i] = u[4*maxindex + i]
@@ -164,12 +164,12 @@ function getXpvapor(Xp,L)
     return Xpvapor
 end
 
-function XptoLevapoverlap(Xpvapor,Xe)
+function XptoLoverlap(Xpvapor,Xe)
     Loverlap = zeros(length(Xpvapor))
     for i = 1:length(Xpvapor)
         for j = 1:length(Xe)
-            if overlap(Xpvapor[i],Xe[j])
-            Loverlap[i] += oneevapoverlap(Xpvapor[i],Xe[j])
+            if ifoverlap(Xpvapor[i],Xe[j])
+            Loverlap[i] += oneoverlap(Xpvapor[i],Xe[j])
             end
         end
     end
@@ -177,11 +177,11 @@ function XptoLevapoverlap(Xpvapor,Xe)
     return Loverlap
 end
 
-function oneevapoverlap(oneXpvapor,oneXe)
+function oneoverlap(oneXpvapor,oneXe)
     return min(oneXpvapor[end],oneXe[end]) - max(oneXpvapor[1],oneXe[1])
 end
 
-function overlap(oneXpvapor,oneXe)
+function ifoverlap(oneXpvapor,oneXe)
     return ( (oneXpvapor[end] >= oneXe[1]) || (oneXpvapor[1] <= oneXe[end]) ) && (oneXpvapor[end] > oneXe[1]) && (oneXpvapor[1] < oneXe[end])
 end
 
