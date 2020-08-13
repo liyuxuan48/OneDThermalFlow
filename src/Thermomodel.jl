@@ -69,7 +69,7 @@ function dMdtzhang2002model(Xpvapor,θ,sys0)
 
     for i = 1:length(Xpvapor)
         if Lcondoverlap[i] < 1e-8
-            dMdt[i] = He * (Xpvapor[i][end]-Xpvapor[i][1]) * (θe-θ[i])
+            dMdt[i] = He * Levapoverlap[i] * (θe-θ[i])
         else
             dMdt[i] = -Hc * Lcondoverlap[i] * (θ[i]-θc)
         end
