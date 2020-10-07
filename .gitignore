@@ -1,4 +1,4 @@
 *.pdf
 *.svg
 *.eps
-examples\.ipynb_checkpoints
+examples/.ipynb_checkpoints
