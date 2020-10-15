@@ -67,6 +67,8 @@ function dMdtzhang2002model(Xpvapor,θ,sys0)
     Levapoverlap=XptoLoverlap(Xpvapor,Xe)
     Lcondoverlap=XptoLoverlap(Xpvapor,Xc)
 
+
+    # May not be right for multi liquid flow
     for i = 1:length(Xpvapor)
         if Lcondoverlap[i] < 1e-8
             dMdt[i] = He * Levapoverlap[i] * (θe-θ[i])
