@@ -1,6 +1,6 @@
 module Systems
 
-export PHPSystem,Tube,Evaporator,Condenser,LiquidSlug,VaporPlug
+export PHPSystem,Tube,Evaporator,Condenser,LiquidSlug,VaporPlug,PHPResult
 
 # using ..Tools
 
@@ -126,6 +126,29 @@ struct PHPSystem
     condenser
     liquidslug
     vaporplug
+end
+
+"""
+PHPSystem is a struct containing
+    γ
+    Hc
+    He
+    θc
+    θe
+    ω0
+    ζ
+    L dimensionless pipe total length
+    Xc dimensionless condenser range
+    Xe dimensionless evaporater range
+"""
+
+struct PHPResult
+    t::Array{Float64,1}
+    Xp::Array{Array{Float64,1},1}
+    dXdt::Array{Array{Float64,1},1}
+    P::Array{Array{Float64,1},1}
+    θ::Array{Array{Float64,1},1}
+    M::Array{Array{Float64,1},1}
 end
 
 

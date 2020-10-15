@@ -1,6 +1,6 @@
 module Tools
 
-export getheight,XMtovec,vectoXM,XptoLvaporplug,XptoLliquidslug,getXpvapor,XptoLoverlap,oneoverlap,ifoverlap
+export getheight,XMtovec,XLMγtop,XLMγtoθ,vectoXM,XptoLvaporplug,XptoLliquidslug,getXpvapor,XptoLoverlap,oneoverlap,ifoverlap
 
 """
     this function's inputs are uu and gamma
@@ -86,6 +86,25 @@ function XMtovec(Xp,dXdt,M)
     return u
 
 end
+
+function XLMγtop(X,L,M,γ) #only good for one calculation per time point, not good for onec calculation for all time
+    Lvaporplug = XptoLvaporplug(X,L)
+
+    P = (M./Lvaporplug).^(γ)
+
+    P
+end
+
+function XLMγtoθ(X,L,M,γ) #only good for one calculation per time point, not good for onec calculation for all time
+    Lvaporplug = XptoLvaporplug(X,L)
+
+    P = (M./Lvaporplug).^(γ)
+    θ = P.^((γ-1)./γ)
+
+    θ
+end
+
+
 
 function vectoXM(u)
 
