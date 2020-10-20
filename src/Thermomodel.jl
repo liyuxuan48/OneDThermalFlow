@@ -5,7 +5,15 @@ export zhang2002model!,dMdtzhang2002model
 using ..Systems,..Tools
 
 """
-    reserved for future use
+    This function is required by "DifferentialEquation.jl" Package.
+        du :: an empty state vector to be derived at the end of this function.
+        u  :: the state vector input from the last time step.
+        p  :: some important parameters which do not belong to u
+        t  :: the current time
+
+    This approach solves the same set of dimensionless governing equations as
+    "https://doi.org/10.1016/S0017-9310(01)00348-9"(Zhang et al. 2002)
+    Instead of solving them piece by piece. Our current approach solve them as a whole system.
 """
 
 function zhang2002model!(du,u,p,t)
