@@ -16,7 +16,7 @@ using ..Systems,..Tools
     Instead of solving them piece by piece. Our current approach solve them as a whole system.
 """
 
-function zhang2002model!(du,u,p,t)
+function zhang2002model!(du::Array{Float64,1},u::Array{Float64,1},p::PHPSystem,t::Float64)
 
 
     (Xp,dXdt0,M)=vectoXM(u)
@@ -59,7 +59,16 @@ function zhang2002model!(du,u,p,t)
 
 end
 
-function dMdtzhang2002model(Xpvapor,θ,sys0)
+"""
+    This function is a sub-function of zhang2002model. This function is the phase change part,
+        Xpvapor ::  storing the location of two ends of each vapor
+        θ       ::  the temperature in each vapor.
+        sys0    ::  the struct that stores every needed initial conditions and boundary conditions
+
+    In this case. He and Hc are preset constants.
+"""
+
+function dMdtzhang2002model(Xpvapor::Array{Tuple{Float64,Float64},1},θ::Array{Float64,1},sys0::PHPSystem)
 
     dMdt=zeros(length(Xpvapor))
 
@@ -72,8 +81,8 @@ function dMdtzhang2002model(Xpvapor,θ,sys0)
     Hc = sys0.condenser.Hc
     θc = sys0.condenser.θc
 
-    Levapoverlap=XptoLoverlap(Xpvapor,Xe)
-    Lcondoverlap=XptoLoverlap(Xpvapor,Xc)
+    Levapoverlap=XpvaportoLoverlap(Xpvapor,Xe)
+    Lcondoverlap=XpvaportoLoverlap(Xpvapor,Xc)
 
 
     # May not be right for multi liquid flow

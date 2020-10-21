@@ -1,53 +1,28 @@
 module Tools
 
-export getheight,XMtovec,XLMγtop,XLMγtoθ,vectoXM,XptoLvaporplug,XptoLliquidslug,getXpvapor,XptoLoverlap,oneoverlap,ifoverlap
+export getheight,XMtovec,vectoXM,XptoLvaporplug,XptoLliquidslug,getXpvapor,XpvaportoLoverlap
 
 """
-    this function's inputs are uu and gamma
-
-        uu has 3 rows
-        the 1st row is u (velocity)
-        the 2nd row is m (mass flow rate)
-        the 3rd row is ̂E (total energy per volume)
-
-        gamma is the heat capacity ratio
-
-    this function's outputs is tourhoc
-
-        tourhoc has 3 rows
-        the 1st row is u (velocity)
-        the 2nd row is ρ (density)
-        the 3rd row is c (speed of sound)
-
-    this function uses perfect gas state function to get tourhoc
+    This function is a sub-function of getheight. This function is to get the actural physical height for one interface
+        X     ::   the location of one interface
+        L2D   ::   the length of one bend to another bend (the length in 2D)
+        alpha ::   the inclination angle
 """
-function getoneheight(X,L2D,alpha)
+
+function getoneheight(X::Float64,L2D::Float64,alpha::Float64)
 
     Integer(mod(div(X,L2D),2.0)) == 0 ? L2D - mod(X,L2D) : mod(X,L2D)
 
 end
 
 """
-    this function's inputs are uu and gamma
-
-        uu has 3 rows
-        the 1st row is u (velocity)
-        the 2nd row is m (mass flow rate)
-        the 3rd row is ̂E (total energy per volume)
-
-        gamma is the heat capacity ratio
-
-    this function's outputs is tourhop
-
-        tourhoc has 3 rows
-        the 1st row is u (velocity)
-        the 2nd row is ρ (density)
-        the 3rd row is p (pressure)
-
-    this function uses perfect gas state function to get tourhop
+    This function is to get the actural physical heights for all interfaces
+        Xp    ::   the locations of all interfaces
+        L2D   ::   the length of one bend to another bend (the length in 2D)
+        alpha ::   the inclination angle
 """
 
-function getheight(Xp,L2D,alpha)
+function getheight(Xp::Array{Tuple{Float64,Float64},1},L2D::Float64,alpha::Float64)
 
     height=deepcopy(Xp)
 
@@ -55,11 +30,17 @@ function getheight(Xp,L2D,alpha)
         height[i]=(getoneheight(Xp[i][1],L2D,alpha), getoneheight(Xp[i][end],L2D,alpha))
     end
 
-
     return height
 end
 
-function XMtovec(Xp,dXdt,M)
+"""
+    This function is to transform Xp, dXdt of the interface, and M of the vapor to form our state vector u
+        Xp    ::   the locations of all interfaces
+        dXdt  ::   the 1D velocity of all interfaces
+        M     ::   the mass of all vapors
+"""
+
+function XMtovec(Xp::Array{Tuple{Float64,Float64},1},dXdt::Array{Tuple{Float64,Float64},1},M::Array{Float64,1})
     if (length(Xp) == length(dXdt)) && (length(Xp) + 1 == length(M))
 
         u=zeros(5*length(Xp)+1)
@@ -87,26 +68,12 @@ function XMtovec(Xp,dXdt,M)
 
 end
 
-function XLMγtop(X,L,M,γ) #only good for one calculation per time point, not good for onec calculation for all time
-    Lvaporplug = XptoLvaporplug(X,L)
+"""
+    This function is to transform Xp, dXdt of the interface, and M of the vapor to form our state vector u
+        u    ::   the state vector
+"""
 
-    P = (M./Lvaporplug).^(γ)
-
-    P
-end
-
-function XLMγtoθ(X,L,M,γ) #only good for one calculation per time point, not good for onec calculation for all time
-    Lvaporplug = XptoLvaporplug(X,L)
-
-    P = (M./Lvaporplug).^(γ)
-    θ = P.^((γ-1)./γ)
-
-    θ
-end
-
-
-
-function vectoXM(u)
+function vectoXM(u::Array{Float64,1})
 
     maxindex = Integer( (length(u) - 1)/5 )
 
@@ -134,7 +101,13 @@ function vectoXM(u)
 
 end
 
-function XptoLvaporplug(Xp,L)
+"""
+    This function is to transform Xp of every interface, and L of the tube to form an array of vapor length
+        Xp    ::   the locations of all interfaces
+        L     ::   the length of the 1D tube
+"""
+
+function XptoLvaporplug(Xp::Array{Tuple{Float64,Float64},1},L::Float64)
 
     maxindex = length(Xp) + 1
     Lvaporplug = zeros(maxindex)
@@ -154,7 +127,12 @@ function XptoLvaporplug(Xp,L)
 
 end
 
-function XptoLliquidslug(Xp)
+"""
+    This function is to transform Xp of every interface to form an array of vapor length
+        Xp    ::   the locations of all interfaces
+"""
+
+function XptoLliquidslug(Xp::Array{Tuple{Float64,Float64},1})
 
     Lliquidslug = zeros(length(Xp))
 
@@ -168,6 +146,15 @@ function XptoLliquidslug(Xp)
     return Lliquidslug
 
 end
+
+"""
+    The Xp was coupled by every liquid slug. For instance, if there is one liquid slug. Xp is a one-element tuple (Xp[1][1], Xp[1][2]).
+    But sometimes we need Xp to be coupled by every vapor plug. For one liquid slug, we have two vapor plugs.
+    So by adding 0 and L at the beginning and the end,
+    we construct a two-element tuple ((0.0,Xp[1][1]) and ((Xp[1][2],L). Generally, for every N-element Xp, we construct an N+1 element Xpvapor
+        Xp    ::   the locations of all interfaces, each element means a liquid slug.
+        L     ::   the length of the 1D tube
+"""
 
 function getXpvapor(Xp,L)
     Xpvapor=deepcopy(Xp)
@@ -183,12 +170,24 @@ function getXpvapor(Xp,L)
     return Xpvapor
 end
 
-function XptoLoverlap(Xpvapor,Xe)
+"""
+    This function aims to get the overlapping length between the vapor plug and each evaporator/condenser section and sum them up.
+    It can sum up all evaporator sections or condensor sections respectively, but it cannot sum both of them at the same time.
+    For example:
+
+    XpvaportoLoverlap(Xpvapor,Xe) sums all the overlapping regions for evaporator
+    XpvaportoLoverlap(Xpvapor,Xc) sums all the overlapping regions for condensor
+
+        Xpvapor    ::   the locations of all interfaces, each element means a vapor plug.
+        Xce        ::   the locations of all evaporators/condensors, each element is a evaporators/condensors section
+"""
+
+function XpvaportoLoverlap(Xpvapor,Xce)
     Loverlap = zeros(length(Xpvapor))
     for i = 1:length(Xpvapor)
-        for j = 1:length(Xe)
-            if ifoverlap(Xpvapor[i],Xe[j])
-            Loverlap[i] += oneoverlap(Xpvapor[i],Xe[j])
+        for j = 1:length(Xce)
+            if ifoverlap(Xpvapor[i],Xce[j])
+            Loverlap[i] += oneoverlap(Xpvapor[i],Xce[j])
             end
         end
     end
@@ -196,12 +195,26 @@ function XptoLoverlap(Xpvapor,Xe)
     return Loverlap
 end
 
-function oneoverlap(oneXpvapor,oneXe)
-    return min(oneXpvapor[end],oneXe[end]) - max(oneXpvapor[1],oneXe[1])
+"""
+    This is a sub-function to solve the overlapping length between a single vapor section and a single evaporator/condensor section
+
+    oneXpvapor ::  the locations of two ends of a vapor plug
+    oneXce     ::  the locations of two ends of a evaporator/condensor
+"""
+
+function oneoverlap(oneXpvapor,oneXce)
+    return min(oneXpvapor[end],oneXce[end]) - max(oneXpvapor[1],oneXce[1])
 end
 
-function ifoverlap(oneXpvapor,oneXe)
-    return ( (oneXpvapor[end] >= oneXe[1]) || (oneXpvapor[1] <= oneXe[end]) ) && (oneXpvapor[end] > oneXe[1]) && (oneXpvapor[1] < oneXe[end])
+"""
+    This is a sub-function to determine if there is a overlapping region between a single vapor section and a single evaporator/condensor section
+
+    oneXpvapor ::  the locations of two ends of a vapor plug
+    oneXce     ::  the locations of two ends of a evaporator/condensor
+"""
+
+function ifoverlap(oneXpvapor,oneXce)
+    return ( (oneXpvapor[end] >= oneXce[1]) || (oneXpvapor[1] <= oneXce[end]) ) && (oneXpvapor[end] > oneXce[1]) && (oneXpvapor[1] < oneXce[end])
 end
 
 
