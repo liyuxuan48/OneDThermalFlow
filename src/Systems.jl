@@ -18,7 +18,7 @@ PHPSystem is a struct containing
     Xe dimensionless evaporater range
 """
 
-struct Tube
+mutable struct Tube
     L::Float64
     L2D::Float64
     alpha::Float64
@@ -38,7 +38,7 @@ PHPSystem is a struct containing
     Xe dimensionless evaporater range
 """
 
-struct Evaporator
+mutable struct Evaporator
     He::Float64
     θe::Float64
     Xe::Array{Tuple{Float64,Float64},1}
@@ -58,7 +58,7 @@ PHPSystem is a struct containing
     Xe dimensionless evaporater range
 """
 
-struct Condenser
+mutable struct Condenser
     Hc::Float64
     θc::Float64
     Xc::Array{Tuple{Float64,Float64},1}
@@ -78,7 +78,7 @@ PHPSystem is a struct containing
     Xe dimensionless evaporater range
 """
 
-struct LiquidSlug
+mutable struct LiquidSlug
     γ::Float64
     ω0::Array{Float64,1}
     ℘::Array{Float64,1}
@@ -100,7 +100,7 @@ PHPSystem is a struct containing
     Xe dimensionless evaporater range
 """
 
-struct VaporPlug
+mutable struct VaporPlug
     γ::Float64
     P::Array{Float64,1}
 end
@@ -120,7 +120,7 @@ PHPSystem is a struct containing
     Xe dimensionless evaporater range
 """
 # add type names!
-struct PHPSystem
+mutable struct PHPSystem
     tube
     evaporator
     condenser
@@ -143,12 +143,12 @@ PHPSystem is a struct containing
 """
 
 struct PHPResult
-    t::Array{Float64,1}
-    Xp::Array{Array{Float64,1},1}
-    dXdt::Array{Array{Float64,1},1}
-    P::Array{Array{Float64,1},1}
-    θ::Array{Array{Float64,1},1}
-    M::Array{Array{Float64,1},1}
+    t
+    Xp
+    dXdt
+    P
+    θ
+    M
 end
 
 

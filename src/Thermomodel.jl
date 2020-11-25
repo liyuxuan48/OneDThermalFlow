@@ -36,10 +36,20 @@ function zhang2002model!(du::Array{Float64,1},u::Array{Float64,1},p::PHPSystem,t
 
 
     # get P from M and γ
-    P = (M./Lvaporplug).^(γ)
+    # P = (M./Lvaporplug).^(γ)
+    # P = zeros(size(M))
+    # for i in length(M)
+    #        P[i] = M[i] > 0 ? (M[i]./Lvaporplug[i]).^(γ) : -(-M[i]./Lvaporplug[i]).^(γ)
+    #    end
+    P = real.((M./Lvaporplug .+ 0im).^(γ))
 
     # get θ from P and γ
-    θ = P.^((γ-1)/γ)
+    # θ = zeros(size(P))
+    # for i in length(P)
+    #        θ[i] = P[i] > 0 ? P[i].^((γ-1)/γ) : -(-P[i]).^((γ-1)/γ)
+    #    end
+    θ = real.((P .+ 0im).^((γ-1)/γ))
+    # θ = P.^((γ-1)/γ)
 
 
     for i = 1:numofliquidslug
@@ -53,7 +63,7 @@ function zhang2002model!(du::Array{Float64,1},u::Array{Float64,1},p::PHPSystem,t
 
 
 
-        du[4*numofliquidslug+1:length(u)] .= dMdtzhang2002model(Xpvapor,θ,sys0)
+        du[4*numofliquidslug+1:5*numofliquidslug+1] .= dMdtzhang2002model(Xpvapor,θ,sys0)
 
     return du
 
