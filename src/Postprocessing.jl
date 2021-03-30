@@ -1,6 +1,6 @@
 module Postprocessing
 
-export soltoResult
+export soltoResult,soltoMatrxResult
 
 using ..Systems,..Tools
 
@@ -68,4 +68,18 @@ function soltoResult(sol,sys0) #only good for one calculation per time point, no
     end
     # result=typeof(sol) == Array{Float64,1} ? PHPResult(-1.0, vec(hcat(Xp...)),vec(hcat(dXdt...)),vec(hcat(P...)),vec(hcat(θ...)),vec(hcat(M...))) : PHPResult(sol.t,Xp,dXdt,P,θ,M)
 end
+
+
+function soltoMatrxResult(sol,sys0) #only good for one calculation per time point, not good for onec calculation for all time
+
+    γ = sys0.liquidslug.γ
+    numofliquidslug =  Integer( (size(sol)[1]-1)/5  )
+
+    MatrxXp=sol[1:2*numofliquidslug,:]
+    MatrxdXdt=sol[2*numofliquidslug+1:4*numofliquidslug,:]
+    MatrxM=sol[4*numofliquidslug+1:end,:]
+
+    return MatrxXp, MatrxdXdt, MatrxM
+end
+
 end

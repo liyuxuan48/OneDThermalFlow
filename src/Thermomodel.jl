@@ -62,8 +62,9 @@ function zhang2002model!(du::Array{Float64,1},u::Array{Float64,1},p::PHPSystem,t
     end
 
 
-
+# not sure which one is better
         du[4*numofliquidslug+1:5*numofliquidslug+1] .= dMdtzhang2002model(Xpvapor,θ,sys0)
+        # du[4*numofliquidslug+1:5*numofliquidslug+1] .= dMdtconstantH(Xpvapor,θ,sys0)
 
     return du
 
@@ -107,4 +108,28 @@ function dMdtzhang2002model(Xpvapor::Array{Tuple{Float64,Float64},1},θ::Array{F
     return dMdt
 
 end
+
+function dMdtconstantH(Xpvapor::Array{Tuple{Float64,Float64},1},θ::Array{Float64,1},sys0::PHPSystem)
+
+    dMdt=zeros(length(Xpvapor))
+
+
+    Xe = sys0.evaporator.Xe
+    He = sys0.evaporator.He
+    θe = sys0.evaporator.θe
+
+    Xc = sys0.condenser.Xc
+    Hc = sys0.condenser.Hc
+    θc = sys0.condenser.θc
+
+    Levapoverlap=XpvaportoLoverlap(Xpvapor,Xe)
+    Lcondoverlap=XpvaportoLoverlap(Xpvapor,Xc)
+
+    for i = 1:length(Xpvapor)
+        dMdt[i] = He * Levapoverlap[i] * (θe-θ[i]) -Hc * Lcondoverlap[i] * (θ[i]-θc)
+    end
+    return dMdt
+
+end
+
 end
