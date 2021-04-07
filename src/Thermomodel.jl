@@ -30,7 +30,7 @@ function zhang2002model!(du::Array{Float64,1},u::Array{Float64,1},p::PHPSystem,t
     ℘ = sys0.liquidslug.℘
     Lvaporplug = XptoLvaporplug(Xp,sys0.tube.L)
 #     Lliquidslug = XptoLliquidslug(Xp)
-    height = getheight(Xp,sys0.tube.L2D,sys0.tube.alpha)
+    height = getheight(Xp,sys0.tube.L2D,sys0.tube.angle)
     Xpvapor = getXpvapor(Xp,sys0.tube.L)
 
 

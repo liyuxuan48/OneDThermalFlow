@@ -6,10 +6,10 @@ export getheight,XMtovec,vectoXM,XptoLvaporplug,XptoLliquidslug,getXpvapor,Xpvap
     This function is a sub-function of getheight. This function is to get the actural physical height for one interface
         X     ::   the location of one interface
         L2D   ::   the length of one bend to another bend (the length in 2D)
-        alpha ::   the inclination angle
+        angle ::   the inclination angle
 """
 
-function getoneheight(X::Float64,L2D::Float64,alpha::Float64)
+function getoneheight(X::Float64,L2D::Float64,angle::Float64)
 
     Integer(mod(div(X,L2D),2.0)) == 0 ? L2D - mod(X,L2D) : mod(X,L2D)
 
@@ -19,15 +19,15 @@ end
     This function is to get the actural physical heights for all interfaces
         Xp    ::   the locations of all interfaces
         L2D   ::   the length of one bend to another bend (the length in 2D)
-        alpha ::   the inclination angle
+        angle ::   the inclination angle
 """
 
-function getheight(Xp::Array{Tuple{Float64,Float64},1},L2D::Float64,alpha::Float64)
+function getheight(Xp::Array{Tuple{Float64,Float64},1},L2D::Float64,angle::Float64)
 
     height=deepcopy(Xp)
 
     for i =1:length(Xp)
-        height[i]=(getoneheight(Xp[i][1],L2D,alpha), getoneheight(Xp[i][end],L2D,alpha))
+        height[i]=(getoneheight(Xp[i][1],L2D,angle), getoneheight(Xp[i][end],L2D,angle))
     end
 
     return height
