@@ -1,6 +1,6 @@
 module Thermomodel
 
-export zhang2002model!,dMdtzhang2002model
+export zhang2002model!,dMdtzhang2002model,dynamicsmodel,dMdtdynamicsmodel
 
 using ..Systems,..Tools
 
@@ -25,9 +25,9 @@ function zhang2002model!(du::Array{Float64,1},u::Array{Float64,1},p::PHPSystem,t
     numofliquidslug =  Integer( (length(u) - 1)/5 )
     sys0 = p
 
-    γ = sys0.liquidslug.γ
-    ω0 = sys0.liquidslug.ω0
-    ℘ = sys0.liquidslug.℘
+    γ = sys0.liquid.γ
+    ω0 = sys0.liquid.ω0
+    ℘ = sys0.liquid.℘
     Lvaporplug = XptoLvaporplug(Xp,sys0.tube.L)
 #     Lliquidslug = XptoLliquidslug(Xp)
     height = getheight(Xp,sys0.tube.L2D,sys0.tube.angle)
@@ -128,6 +128,88 @@ function dMdtconstantH(Xpvapor::Array{Tuple{Float64,Float64},1},θ::Array{Float6
     for i = 1:length(Xpvapor)
         dMdt[i] = He * Levapoverlap[i] * (θe-θ[i]) -Hc * Lcondoverlap[i] * (θ[i]-θc)
     end
+    return dMdt
+
+end
+
+
+function dynamicsmodel(u::Array{Float64,1},p::PHPSystem)
+
+    du = zero(deepcopy(u))
+
+    (Xp,dXdt0,M)=vectoXM(u)
+
+
+    numofliquidslug =  Integer( (length(u) - 1)/5 )
+    sys = p
+
+    γ = sys.liquid.γ
+    ω0 = sys.liquid.ω0
+    ℘ = sys.liquid.℘
+    Lvaporplug = XptoLvaporplug(Xp,sys.tube.L)
+#     Lliquidslug = XptoLliquidslug(Xp)
+    height = getheight(Xp,sys.tube.L2D,sys.tube.angle)
+    Xpvapor = getXpvapor(Xp,sys.tube.L)
+
+
+
+    P = real.((M./Lvaporplug .+ 0im).^(γ))
+
+
+    θ = real.((P .+ 0im).^((γ-1)/γ))
+
+
+    for i = 1:numofliquidslug
+        du[2*i-1] = u[2*numofliquidslug+2*i-1]
+        du[2*i] = du[2*i-1]
+
+        du[2*numofliquidslug + 2*i-1] = -32*u[2*numofliquidslug + 2*i-1] - (ω0[i]^2)*(0.5*(height[i][end]-height[i][1])) + ℘[i]*(P[i]-P[i+1])
+        du[2*numofliquidslug + 2*i] = du[2*numofliquidslug + 2*i-1]
+
+    end
+#     print("Xpvapor=",Xpvapor,"\n")
+#        print("Lvaporplug=",Lvaporplug,"\n")
+#         print("P=",P,"\n")
+#        print("M=",M,"\n")
+#        print("θ=",θ,"\n")
+
+
+# not sure which one is better
+    du[4*numofliquidslug+1:end] .= dMdtdynamicsmodel(Xpvapor,θ,sys)
+
+
+
+    return du
+
+end
+
+function dMdtdynamicsmodel(Xpvapor::Array{Tuple{Float64,Float64},1},θ::Array{Float64,1},sys::PHPSystem)
+
+    dMdt=zeros(length(Xpvapor))
+
+    He = sys.evaporator.He
+
+    Hc = sys.condenser.Hc
+
+    dx = sys.wall.Xarray[2]-sys.wall.Xarray[1]
+
+    for i = 1:length(Xpvapor)
+        indexes = findall( x -> x == (i,-1), sys.mapping.walltoliquid)
+
+            for j in length(indexes)
+
+#                 print("index",size(indexes),"\n")
+#                 print("θarray",size(sys.wall.θarray),"\n")
+
+                dMdt[i] += He*dx*(sys.wall.θarray[indexes[j]] - θ[i])
+
+            end
+
+
+    end
+
+
+
     return dMdt
 
 end

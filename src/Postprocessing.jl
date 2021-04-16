@@ -10,12 +10,12 @@ using ..Systems,..Tools
 
 function soltoResult(sol,sys0) #only good for one calculation per time point, not good for onec calculation for all time
 
-    γ = sys0.liquidslug.γ
+    γ = sys0.liquid.γ
     numofliquidslug =  Integer( (size(sol)[1]-1)/5  )
 
     MatrxXp=sol[1:2*numofliquidslug,:]
     MatrxdXdt=sol[2*numofliquidslug+1:4*numofliquidslug,:]
-    M=sol[4*numofliquidslug+1:end,:]
+    M=sol[4*numofliquidslug+1:5*numofliquidslug+1,:]
 
     Xp = Array{Tuple{Float64, Float64}}((undef), Integer(size(MatrxXp)[1]/2), size(MatrxXp)[2])
     dXdt = Array{Tuple{Float64, Float64}}((undef), size(Xp))
@@ -72,12 +72,23 @@ end
 
 function soltoMatrxResult(sol,sys0) #only good for one calculation per time point, not good for onec calculation for all time
 
-    γ = sys0.liquidslug.γ
-    numofliquidslug =  Integer( (size(sol)[1]-1)/5  )
+    indexes = Int64[]
+    θliquidrec = Array[]
+
+    for i = 1:length(sol[1])
+        if abs(sol[1][i]+1e10) <= 10^(-1)
+            push!(indexes,i)
+        end
+    end
+
+
+    γ = sys0.liquid.γ
+    # numofliquidslug =  Integer( (size(sol)[1]-1)/5  )
+    numofliquidslug =  Integer( (indexes[1]-2)/5  )
 
     MatrxXp=sol[1:2*numofliquidslug,:]
     MatrxdXdt=sol[2*numofliquidslug+1:4*numofliquidslug,:]
-    MatrxM=sol[4*numofliquidslug+1:end,:]
+    MatrxM=sol[4*numofliquidslug+1:5*numofliquidslug+1,:]
 
     return MatrxXp, MatrxdXdt, MatrxM
 end

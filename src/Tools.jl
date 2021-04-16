@@ -1,6 +1,9 @@
 module Tools
 
-export getheight,XMtovec,vectoXM,XptoLvaporplug,XptoLliquidslug,getXpvapor,XpvaportoLoverlap
+export getheight,XMtovec,vectoXM,XptoLvaporplug,XptoLliquidslug,getXpvapor,XpvaportoLoverlap,ifamongone,ifamong,settemperature!,laplacian,constructXarrays,constructXarrays,walltoliquidmapping,liquidtowallmapping,truncate,constructmapping,duliquidθtovec,duwallθtovec,liquidθtovec,wallθtovec,updateXarrays,getcurrentsys,wallmodel,liquidmodel
+
+using ..Systems
+using LinearAlgebra
 
 """
     This function is a sub-function of getheight. This function is to get the actural physical height for one interface
@@ -216,6 +219,266 @@ end
 function ifoverlap(oneXpvapor,oneXce)
     return ( (oneXpvapor[end] >= oneXce[1]) || (oneXpvapor[1] <= oneXce[end]) ) && (oneXpvapor[end] > oneXce[1]) && (oneXpvapor[1] < oneXce[end])
 end
+
+function ifamongone(value::Float64, range::Tuple{Float64,Float64})
+    return (value >= range[1]) && (value <= range[2]) ? true : false
+end
+
+function ifamong(value::Float64, X::Array{Tuple{Float64,Float64},1})
+
+    return Bool(sum(ifamongone.(value,X)))
+end
+
+function settemperature!(θᵣ,xvalue,sys0)
+
+    if ifamong(xvalue, sys0.evaporator.Xe)
+        θᵣ = sys0.evaporator.θe
+
+    elseif ifamong(xvalue, sys0.condenser.Xc)
+        θᵣ = sys0.condenser.θc
+    end
+
+    return θᵣ
+
+end
+
+function laplacian(u)
+    unew = deepcopy(u)
+
+    dl = ones(length(u)-1)
+    dr = dl
+    d  = -2*ones(length(u))
+
+    A = Tridiagonal(dl, d, dr)
+
+    unew = A*u
+
+    unew[1]   = unew[2]
+    unew[end] = unew[end-1]
+
+    return (unew)
+end
+
+function constructXarrays(X0::Array{Tuple{Float64,Float64},1},N,θinitial,L)
+    Xarrays=Array{Array{Float64, 1}, 1}(undef, length(X0))
+
+    Lliquid = XptoLliquidslug(X0)
+
+    Nliquid =  floor.(Int, N.*Lliquid./L)
+
+    for i = 1:length(Xarrays)
+        Xarrays[i] = range(X0[i][1], X0[i][2], length=Nliquid[i])
+    end
+
+    θarrays = deepcopy(Xarrays)
+    for i = 1:length(θarrays)
+        θarrays[i][:] .= θinitial
+    end
+
+    return(Xarrays,θarrays)
+end
+
+function constructXarrays(L::Float64,N,θinitial)
+    Xwallarray = Array{Float64, 1}(undef, N)
+    Xwallarray = range(0, L, length=N)
+
+    θwallarray = deepcopy(Xwallarray)
+    θwallarray = range(θinitial, θinitial, length=N)
+
+    return(Xwallarray,θwallarray)
+end
+
+function walltoliquidmapping(Xwall,Xarrays)
+for i = 1:length(Xarrays)
+    if Xarrays[i][end] < Xwall
+
+    else
+        for j = 1:length(Xarrays[i])
+            if j == 1 && Xarrays[i][j] >= Xwall
+                    return (i,-1)
+                    elseif Xarrays[i][j] >= Xwall && Xarrays[i][j-1] <= Xwall
+                        return (i,j)
+            end
+        end
+    end
+end
+    return (length(Xarrays)+1,-1) # for closed end tube
+end
+
+
+
+function liquidtowallmapping(Xliquidone,Xwallarray)
+
+for i = 2:length(Xwallarray)
+    if Xwallarray[i] >= Xliquidone && Xwallarray[i-1] <= Xliquidone
+        return (i)
+    end
+end
+    return (-1) # for closed end tube
+end
+
+
+function truncate(Xarrays::Array{Array{Float64,1},1})
+
+    integerXarrays = Array{Array{Int64,1},1}(undef, length(Xarrays))
+
+    for i =1:length(Xarrays)
+        integerXarrays[i] = trunc.(Int, Xarrays[i])
+    end
+    return integerXarrays
+end
+
+function constructmapping(Xarrays,Xwallarray)
+    walltoliquid = Array{Tuple{Int64,Int64},1}(undef, length(Xwallarray))
+
+    for i = 1:length(Xwallarray)
+        walltoliquid[i] = walltoliquidmapping(Xwallarray[i],Xarrays)
+    end
+
+    liquidtowall = truncate(Xarrays)
+
+    for i = 1:length(Xarrays)
+        for j = 1:length(Xarrays[i])
+            liquidtowall[i][j] = liquidtowallmapping(Xarrays[i][j],Xwallarray)
+        end
+    end
+
+    return walltoliquid,liquidtowall
+end
+
+function duliquidθtovec(duθarrays)
+    return vcat(map(duwallθtovec, duθarrays)...)
+end
+
+function duwallθtovec(duθwall)
+    return [0.0; duθwall]
+end
+
+function liquidθtovec(θarrays)
+    return vcat(map(wallθtovec, θarrays)...)
+end
+
+function wallθtovec(θwall)
+    return [-1e10; θwall]
+end
+
+function updateXarrays(Xp,Xarrays)
+
+    for i = 1:length(Xp)
+        Xarrays[i] .= Xarrays[i] .- [Xarrays[i][1]] .+ [Xp[i][1]]
+    end
+
+    return Xarrays
+end
+
+function getcurrentsys(u,sys0)
+
+        indexes = Int64[]
+        θliquidrec = Array[]
+
+        for i = 1:length(u)
+            if abs(u[i]+1e10) <= 10^(-1)
+                push!(indexes,i)
+            end
+        end
+
+
+    Xp,dXdt,M = vectoXM(u[1:indexes[1]-1])
+    θwallrec = u[indexes[1]+1:indexes[2]-1]
+
+    for i = 1:length(indexes)-2
+    push!(θliquidrec, u[indexes[i+1]+1:indexes[i+2]-1])
+    end
+    push!(θliquidrec, u[indexes[end]+1:end])
+
+    sysnew = deepcopy(sys0)
+
+    sysnew.liquid.Xp = Xp
+    sysnew.liquid.dXdt = dXdt
+    sysnew.liquid.Xarrays = updateXarrays(Xp,sys0.liquid.Xarrays)
+    sysnew.liquid.θarrays = θliquidrec
+
+    Lvaporplug = XptoLvaporplug(Xp,sys0.tube.L)
+    γ = sys0.vapor.γ
+    P = real.((M./Lvaporplug .+ 0im).^(γ))
+    sysnew.vapor.P = P
+
+    sysnew.wall.θarray = θwallrec
+
+    walltoliquid, liquidtowall = constructmapping(sysnew.liquid.Xarrays ,sysnew.wall.Xarray)
+    sysnew.mapping = Mapping(walltoliquid,liquidtowall)
+
+    return sysnew
+end
+
+function wallmodel(θarray::Array{Float64,1},p::PHPSystem)
+    sys = p
+
+    du = zero(deepcopy(θarray))
+
+    γ = sys.vapor.γ
+    Hₗ = sys.liquid.Hₗ
+    He = sys.evaporator.He
+    dx = sys.wall.Xarray[2]-sys.wall.Xarray[1]
+
+
+    H = zero(deepcopy(θarray))
+    θarray_temp_flow = zero(deepcopy(θarray))
+    for i = 1:length(θarray)
+
+        index = sys.mapping.walltoliquid[i]
+
+        if index[2] == -1
+            P = sys.vapor.P[index[1]]
+            θarray_temp_flow[i] = real.((P .+ 0im).^((γ-1)/γ))
+
+            H = He
+        else
+            θliquidarrays = sys.liquid.θarrays
+            θarray_temp_flow[i] = θliquidarrays[index[1]][index[2]]
+
+            H = Hₗ
+        end
+    end
+
+#     print("θ=",θarray_temp_flow[1:20],"\n")
+
+
+    du = sys.wall.α .* laplacian(θarray) ./ dx ./ dx + H .* (θarray_temp_flow - θarray) .* dx
+
+#     du = sys.wall.α .* laplacian(θarray) ./ dx ./ dx
+
+    return du
+end
+
+function liquidmodel(θarrays,p::PHPSystem)
+    sys = p
+
+    du = zero.(deepcopy(θarrays))
+
+    γ = sys.vapor.γ
+    Hₗ = sys.liquid.Hₗ
+
+
+
+    θarray_temp_wall = zero.(deepcopy(θarrays))
+    for i = 1:length(θarrays)
+
+        dx = sys.wall.Xarray[2]-sys.wall.Xarray[1]
+
+        indexes = sys.mapping.liquidtowall[i]
+
+        for j = 1:length(indexes)
+            θarray_temp_wall[i][j] = sys.wall.θarray[indexes[j]]
+        end
+
+        du[i] = sys.wall.α .* laplacian(θarrays[i]) ./ dx ./ dx + Hₗ .* (θarray_temp_wall[i] - θarrays[i]) .* dx
+    end
+
+
+    return du
+end
+
 
 
 
