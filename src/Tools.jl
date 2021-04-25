@@ -1,6 +1,6 @@
 module Tools
 
-export getheight,XMtovec,vectoXM,XptoLvaporplug,XptoLliquidslug,getXpvapor,XpvaportoLoverlap,ifamongone,ifamong,settemperature!,laplacian,constructXarrays,constructXarrays,walltoliquidmapping,liquidtowallmapping,truncate,constructmapping,duliquidθtovec,duwallθtovec,liquidθtovec,wallθtovec,updateXarrays,getcurrentsys,wallmodel,liquidmodel
+export getheight,XMtovec,XMδtovec,vectoXM,vectoXMδ,XptoLvaporplug,XptoLliquidslug,getXpvapor,XpvaportoLoverlap,ifamongone,ifamong,settemperature!,laplacian,constructXarrays,constructXarrays,walltoliquidmapping,liquidtowallmapping,truncate,constructmapping,duliquidθtovec,duwallθtovec,liquidθtovec,wallθtovec,updateXarrays,getcurrentsys,wallmodel,liquidmodel
 
 using ..Systems
 using LinearAlgebra
@@ -71,6 +71,11 @@ function XMtovec(Xp::Array{Tuple{Float64,Float64},1},dXdt::Array{Tuple{Float64,F
 
 end
 
+function XMδtovec(Xp,dXdt,M,δ)
+
+    return ([XMtovec(Xp,dXdt,M);δ])
+end
+
 """
     This function is to transform Xp, dXdt of the interface, and M of the vapor to form our state vector u
         u    ::   the state vector
@@ -101,6 +106,40 @@ function vectoXM(u::Array{Float64,1})
     end
 
     return Xp,dXdt,M
+
+end
+
+"""
+    This function is to transform Xp, dXdt of the interface, and M of the vapor to form our state vector u
+        u    ::   the state vector
+"""
+
+function vectoXMδ(u::Array{Float64,1})
+
+    maxindex = Integer( (length(u) - 2)/6 )
+
+    Xp = map(tuple, zeros(maxindex), zeros(maxindex))
+    dXdt = map(tuple, zeros(maxindex), zeros(maxindex))
+    M = zeros(maxindex+1)
+    δ = zeros(maxindex+1)
+
+    for i = 1:maxindex
+
+        # input Xp
+        Xp[i] = (u[2*i-1],u[2*i])
+
+        # input dXdt
+        dXdt[i] = (u[2*maxindex + 2*i-1],u[2*maxindex + 2*i])
+    end
+
+    for i = 1:(maxindex+1)
+
+        # input M
+        M[i] = u[4*maxindex + i]
+        δ[i] = u[5*maxindex + 1 + i]
+    end
+
+    return Xp,dXdt,M,δ
 
 end
 
@@ -362,10 +401,12 @@ function wallθtovec(θwall)
     return [-1e10; θwall]
 end
 
-function updateXarrays(Xp,Xarrays)
+function updateXarrays(Xp,θarrays)
+
+    Xarrays = deepcopy(θarrays)
 
     for i = 1:length(Xp)
-        Xarrays[i] .= Xarrays[i] .- [Xarrays[i][1]] .+ [Xp[i][1]]
+        Xarrays[i] = LinRange(Xp[i][1],Xp[i][2],length(θarrays[i]))
     end
 
     return Xarrays
@@ -383,7 +424,7 @@ function getcurrentsys(u,sys0)
         end
 
 
-    Xp,dXdt,M = vectoXM(u[1:indexes[1]-1])
+    Xp,dXdt,M,δ = vectoXMδ(u[1:indexes[1]-1])
     θwallrec = u[indexes[1]+1:indexes[2]-1]
 
     for i = 1:length(indexes)-2
@@ -395,13 +436,15 @@ function getcurrentsys(u,sys0)
 
     sysnew.liquid.Xp = Xp
     sysnew.liquid.dXdt = dXdt
-    sysnew.liquid.Xarrays = updateXarrays(Xp,sys0.liquid.Xarrays)
     sysnew.liquid.θarrays = θliquidrec
+    sysnew.liquid.Xarrays = updateXarrays(Xp,sysnew.liquid.θarrays)
+
 
     Lvaporplug = XptoLvaporplug(Xp,sys0.tube.L)
     γ = sys0.vapor.γ
     P = real.((M./Lvaporplug .+ 0im).^(γ))
     sysnew.vapor.P = P
+    sysnew.vapor.δ = δ
 
     sysnew.wall.θarray = θwallrec
 
@@ -412,7 +455,7 @@ function getcurrentsys(u,sys0)
 end
 
 function wallmodel(θarray::Array{Float64,1},p::PHPSystem)
-    sys = p
+    sys = deepcopy(p)
 
     du = zero(deepcopy(θarray))
 
@@ -452,7 +495,7 @@ function wallmodel(θarray::Array{Float64,1},p::PHPSystem)
 end
 
 function liquidmodel(θarrays,p::PHPSystem)
-    sys = p
+    sys = deepcopy(p)
 
     du = zero.(deepcopy(θarrays))
 

@@ -137,11 +137,12 @@ function dynamicsmodel(u::Array{Float64,1},p::PHPSystem)
 
     du = zero(deepcopy(u))
 
-    (Xp,dXdt0,M)=vectoXM(u)
+    # (Xp,dXdt0,M)=vectoXM(u)
+    (Xp,dXdt0,M,δ)=vectoXMδ(u)
 
 
-    numofliquidslug =  Integer( (length(u) - 1)/5 )
-    sys = p
+    numofliquidslug =  Integer( (length(u) - 2)/6 )
+    sys = deepcopy(p)
 
     γ = sys.liquid.γ
     ω0 = sys.liquid.ω0
@@ -163,7 +164,8 @@ function dynamicsmodel(u::Array{Float64,1},p::PHPSystem)
         du[2*i-1] = u[2*numofliquidslug+2*i-1]
         du[2*i] = du[2*i-1]
 
-        du[2*numofliquidslug + 2*i-1] = -32*u[2*numofliquidslug + 2*i-1] - (ω0[i]^2)*(0.5*(height[i][end]-height[i][1])) + ℘[i]*(P[i]-P[i+1])
+        du[2*numofliquidslug + 2*i-1] = -32*u[2*numofliquidslug + 2*i-1] - (ω0[1]^2)*(0.5*(height[i][end]-height[i][1])) + ℘[1]*(P[i]-P[i+1])
+        # use ℘[1] and ω0[1] for now, in the future change them to one value rather than a array.
         du[2*numofliquidslug + 2*i] = du[2*numofliquidslug + 2*i-1]
 
     end
@@ -175,9 +177,9 @@ function dynamicsmodel(u::Array{Float64,1},p::PHPSystem)
 
 
 # not sure which one is better
-    du[4*numofliquidslug+1:end] .= dMdtdynamicsmodel(Xpvapor,θ,sys)
+    du[4*numofliquidslug+1:5*numofliquidslug+1] .= dMdtdynamicsmodel(Xpvapor,θ,sys)
 
-
+    du[5*numofliquidslug+2:end] .= dMdtdynamicsmodel(Xpvapor,θ,sys)
 
     return du
 

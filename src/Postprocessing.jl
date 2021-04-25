@@ -84,13 +84,15 @@ function soltoMatrxResult(sol,sys0) #only good for one calculation per time poin
 
     γ = sys0.liquid.γ
     # numofliquidslug =  Integer( (size(sol)[1]-1)/5  )
-    numofliquidslug =  Integer( (indexes[1]-2)/5  )
+    # numofliquidslug =  Integer( (indexes[1]-2)/5  )
+    numofliquidslug =  Integer( (indexes[1]-3)/6  )
 
     MatrxXp=sol[1:2*numofliquidslug,:]
     MatrxdXdt=sol[2*numofliquidslug+1:4*numofliquidslug,:]
     MatrxM=sol[4*numofliquidslug+1:5*numofliquidslug+1,:]
+    Matrxδ=sol[5*numofliquidslug+2:6*numofliquidslug+2,:]
 
-    return MatrxXp, MatrxdXdt, MatrxM
+    return MatrxXp, MatrxdXdt, MatrxM, Matrxδ
 end
 
 end
