@@ -1,11 +1,12 @@
 module Tools
 
-export getheight,XMtovec,XMδtovec,vectoXM,vectoXMδ,XptoLvaporplug,XptoLliquidslug,getXpvapor,XpvaportoLoverlap,ifamongone,ifamong,settemperature!,laplacian,constructXarrays,constructXarrays,walltoliquidmapping,liquidtowallmapping,truncate,constructmapping,duliquidθtovec,duwallθtovec,liquidθtovec,wallθtovec,updateXarrays,getcurrentsys,wallmodel,liquidmodel
+export getheight,XMtovec,XMδtovec,vectoXM,vectoXMδ,XptoLvaporplug,XptoLliquidslug,getXpvapor,XpvaportoLoverlap,ifamongone,ifamong,settemperature!,laplacian,constructXarrays,walltoliquidmapping,liquidtowallmapping,truncate,constructmapping,duliquidθtovec,duwallθtovec,liquidθtovec,wallθtovec,updateXarrays,getcurrentsys
 
 using ..Systems
 using LinearAlgebra
 
 """
+    (open loop only)
     This function is a sub-function of getheight. This function is to get the actural physical height for one interface
         X     ::   the location of one interface
         L2D   ::   the length of one bend to another bend (the length in 2D)
@@ -19,6 +20,7 @@ function getoneheight(X::Float64,L2D::Float64,angle::Float64)
 end
 
 """
+    (open loop only)
     This function is to get the actural physical heights for all interfaces
         Xp    ::   the locations of all interfaces
         L2D   ::   the length of one bend to another bend (the length in 2D)
@@ -37,6 +39,7 @@ function getheight(Xp::Array{Tuple{Float64,Float64},1},L2D::Float64,angle::Float
 end
 
 """
+    (open loop only)
     This function is to transform Xp, dXdt of the interface, and M of the vapor to form our state vector u
         Xp    ::   the locations of all interfaces
         dXdt  ::   the 1D velocity of all interfaces
@@ -71,14 +74,24 @@ function XMtovec(Xp::Array{Tuple{Float64,Float64},1},dXdt::Array{Tuple{Float64,F
 
 end
 
+"""
+    (open loop only)
+    This function is to transform Xp, dXdt of the interface, and M of the vapor to form our state vector u
+        Xp    ::   the locations of all interfaces
+        dXdt  ::   the 1D velocity of all interfaces
+        M     ::   the mass of all vapors
+        δ     ::   the thickness of film in all vapors
+"""
+
 function XMδtovec(Xp,dXdt,M,δ)
 
     return ([XMtovec(Xp,dXdt,M);δ])
 end
 
 """
+    (open loop only)
     This function is to transform Xp, dXdt of the interface, and M of the vapor to form our state vector u
-        u    ::   the state vector
+        u    ::   the dynamic portion of state vector
 """
 
 function vectoXM(u::Array{Float64,1})
@@ -110,8 +123,9 @@ function vectoXM(u::Array{Float64,1})
 end
 
 """
+    (open loop only)
     This function is to transform Xp, dXdt of the interface, and M of the vapor to form our state vector u
-        u    ::   the state vector
+        u    ::   the dynamic portion of state vector
 """
 
 function vectoXMδ(u::Array{Float64,1})
@@ -144,6 +158,7 @@ function vectoXMδ(u::Array{Float64,1})
 end
 
 """
+    (open loop only)
     This function is to transform Xp of every interface, and L of the tube to form an array of vapor length
         Xp    ::   the locations of all interfaces
         L     ::   the length of the 1D tube
@@ -170,7 +185,8 @@ function XptoLvaporplug(Xp::Array{Tuple{Float64,Float64},1},L::Float64)
 end
 
 """
-    This function is to transform Xp of every interface to form an array of vapor length
+    (open loop only)
+    This function is to transform Xp of every interface to form an array of liquid length
         Xp    ::   the locations of all interfaces
 """
 
@@ -190,6 +206,7 @@ function XptoLliquidslug(Xp::Array{Tuple{Float64,Float64},1})
 end
 
 """
+    (open loop only)
     The Xp was coupled by every liquid slug. For instance, if there is one liquid slug. Xp is a one-element tuple (Xp[1][1], Xp[1][2]).
     But sometimes we need Xp to be coupled by every vapor plug. For one liquid slug, we have two vapor plugs.
     So by adding 0 and L at the beginning and the end,
@@ -213,6 +230,7 @@ function getXpvapor(Xp,L)
 end
 
 """
+    (depreciated)
     This function aims to get the overlapping length between the vapor plug and each evaporator/condenser section and sum them up.
     It can sum up all evaporator sections or condensor sections respectively, but it cannot sum both of them at the same time.
     For example:
@@ -238,7 +256,8 @@ function XpvaportoLoverlap(Xpvapor,Xce)
 end
 
 """
-    This is a sub-function to solve the overlapping length between a single vapor section and a single evaporator/condensor section
+    (depreciated)
+    This is a sub-function of XpvaportoLoverlap to solve the overlapping length between a single vapor section and a single evaporator/condensor section
 
     oneXpvapor ::  the locations of two ends of a vapor plug
     oneXce     ::  the locations of two ends of a evaporator/condensor
@@ -249,6 +268,7 @@ function oneoverlap(oneXpvapor,oneXce)
 end
 
 """
+    (depreciated)
     This is a sub-function to determine if there is a overlapping region between a single vapor section and a single evaporator/condensor section
 
     oneXpvapor ::  the locations of two ends of a vapor plug
@@ -259,14 +279,37 @@ function ifoverlap(oneXpvapor,oneXce)
     return ( (oneXpvapor[end] >= oneXce[1]) || (oneXpvapor[1] <= oneXce[end]) ) && (oneXpvapor[end] > oneXce[1]) && (oneXpvapor[1] < oneXce[end])
 end
 
+"""
+    This is a general sub-function of ifamong to determine if the value is in the range
+
+    value ::  a value
+    range ::  a tuple
+"""
+
 function ifamongone(value::Float64, range::Tuple{Float64,Float64})
     return (value >= range[1]) && (value <= range[2]) ? true : false
 end
+
+"""
+    This is a general function to determine if the value is in any of an array of range
+
+    value ::  a value
+    range ::  an array of tuple
+"""
 
 function ifamong(value::Float64, X::Array{Tuple{Float64,Float64},1})
 
     return Bool(sum(ifamongone.(value,X)))
 end
+
+"""
+    This is a temporary function to initialize wall temperature field
+
+    θᵣ     ::  one temperature value
+    xvalue ::  one x value
+    sys0   ::  system struct to get Xe and Xc
+"""
+
 
 function settemperature!(θᵣ,xvalue,sys0)
 
@@ -281,6 +324,14 @@ function settemperature!(θᵣ,xvalue,sys0)
 
 end
 
+"""
+    This is a function to get the laplacian of a vector field u
+
+    For now zero-gradient boundary condition is used.
+
+    u    ::  an array
+"""
+
 function laplacian(u)
     unew = deepcopy(u)
 
@@ -292,11 +343,21 @@ function laplacian(u)
 
     unew = A*u
 
+    # zero gradient B.C.
     unew[1]   = unew[2]
     unew[end] = unew[end-1]
 
     return (unew)
 end
+
+"""
+    initialize X and θ field for every liquid slugs. return Array{Array{Float64, 1}, 1} and Array{Array{Float64, 1}, 1}
+
+    X0       :: Array{Tuple{Float64,Float64},1}
+    N        :: Int, the number of cells in the wall (ΔX for liquid equals ΔX for the wall)
+    θinitial :: value
+    L        :: tube length
+"""
 
 function constructXarrays(X0::Array{Tuple{Float64,Float64},1},N,θinitial,L)
     Xarrays=Array{Array{Float64, 1}, 1}(undef, length(X0))
@@ -317,6 +378,15 @@ function constructXarrays(X0::Array{Tuple{Float64,Float64},1},N,θinitial,L)
     return(Xarrays,θarrays)
 end
 
+"""
+    initialize X and θ field for wall, return Array{Float64, 1} and Array{Float64, 1}
+
+    X0       :: Array{Tuple{Float64,Float64},1}
+    N        :: Int, the number of cells in the wall (ΔX for liquid equals ΔX for the wall)
+    θinitial :: value
+    L        :: tube length
+"""
+
 function constructXarrays(L::Float64,N,θinitial)
     Xwallarray = Array{Float64, 1}(undef, N)
     Xwallarray = range(0, L, length=N)
@@ -326,6 +396,14 @@ function constructXarrays(L::Float64,N,θinitial)
 
     return(Xwallarray,θwallarray)
 end
+
+"""
+    Create the mapping index of liquid slug corresponding to the wall
+    return Array{Tuple{Float64,Float64},1}
+
+    Xwall   :: Array{Float64,1}
+    Xarrays :: Array{Array{Float64,1},1}
+"""
 
 function walltoliquidmapping(Xwall,Xarrays)
 for i = 1:length(Xarrays)
@@ -344,7 +422,13 @@ end
     return (length(Xarrays)+1,-1) # for closed end tube
 end
 
+"""
+    Create the mapping index of liquid slug corresponding to the wall
+    return Array{Tuple{Float64,Float64},1}
 
+    Xwallarray   :: Array{Float64,1}
+    Xliquidone   :: Array{Float64,1}
+"""
 
 function liquidtowallmapping(Xliquidone,Xwallarray)
 
@@ -356,6 +440,10 @@ end
     return (-1) # for closed end tube
 end
 
+"""
+    A lazy way to tranfer Array{Array{Float64,1},1} to Array{Array{Int64,1},1}
+
+"""
 
 function truncate(Xarrays::Array{Array{Float64,1},1})
 
@@ -366,6 +454,13 @@ function truncate(Xarrays::Array{Array{Float64,1},1})
     end
     return integerXarrays
 end
+
+"""
+    A function to create mapping indexes for Xarrays and Xwallarray
+
+    walltoliquid : Array{Tuple{Int64,Int64},1}
+    liquidtowall : Array{Array{Int64,1},1}
+"""
 
 function constructmapping(Xarrays,Xwallarray)
     walltoliquid = Array{Tuple{Int64,Int64},1}(undef, length(Xwallarray))
@@ -385,6 +480,11 @@ function constructmapping(Xarrays,Xwallarray)
     return walltoliquid,liquidtowall
 end
 
+
+"""
+    A bunch of functions to transfer θ to state vector rate du
+"""
+
 function duliquidθtovec(duθarrays)
     return vcat(map(duwallθtovec, duθarrays)...)
 end
@@ -393,6 +493,10 @@ function duwallθtovec(duθwall)
     return [0.0; duθwall]
 end
 
+"""
+    A bunch of functions to transfer θ to state vector u
+"""
+
 function liquidθtovec(θarrays)
     return vcat(map(wallθtovec, θarrays)...)
 end
@@ -400,6 +504,10 @@ end
 function wallθtovec(θwall)
     return [-1e10; θwall]
 end
+
+"""
+    When having a new Xp because of dynamics, Xarrays need to be updated, too.
+"""
 
 function updateXarrays(Xp,θarrays)
 
@@ -411,6 +519,10 @@ function updateXarrays(Xp,θarrays)
 
     return Xarrays
 end
+
+"""
+    give a new u and an old system, return a new system sysnew
+"""
 
 function getcurrentsys(u,sys0)
 
@@ -453,75 +565,6 @@ function getcurrentsys(u,sys0)
 
     return sysnew
 end
-
-function wallmodel(θarray::Array{Float64,1},p::PHPSystem)
-    sys = deepcopy(p)
-
-    du = zero(deepcopy(θarray))
-
-    γ = sys.vapor.γ
-    Hₗ = sys.liquid.Hₗ
-    He = sys.evaporator.He
-    dx = sys.wall.Xarray[2]-sys.wall.Xarray[1]
-
-
-    H = zero(deepcopy(θarray))
-    θarray_temp_flow = zero(deepcopy(θarray))
-    for i = 1:length(θarray)
-
-        index = sys.mapping.walltoliquid[i]
-
-        if index[2] == -1
-            P = sys.vapor.P[index[1]]
-            θarray_temp_flow[i] = real.((P .+ 0im).^((γ-1)/γ))
-
-            H = He
-        else
-            θliquidarrays = sys.liquid.θarrays
-            θarray_temp_flow[i] = θliquidarrays[index[1]][index[2]]
-
-            H = Hₗ
-        end
-    end
-
-#     print("θ=",θarray_temp_flow[1:20],"\n")
-
-
-    du = sys.wall.α .* laplacian(θarray) ./ dx ./ dx + H .* (θarray_temp_flow - θarray) .* dx
-
-#     du = sys.wall.α .* laplacian(θarray) ./ dx ./ dx
-
-    return du
-end
-
-function liquidmodel(θarrays,p::PHPSystem)
-    sys = deepcopy(p)
-
-    du = zero.(deepcopy(θarrays))
-
-    γ = sys.vapor.γ
-    Hₗ = sys.liquid.Hₗ
-
-
-
-    θarray_temp_wall = zero.(deepcopy(θarrays))
-    for i = 1:length(θarrays)
-
-        dx = sys.wall.Xarray[2]-sys.wall.Xarray[1]
-
-        indexes = sys.mapping.liquidtowall[i]
-
-        for j = 1:length(indexes)
-            θarray_temp_wall[i][j] = sys.wall.θarray[indexes[j]]
-        end
-
-        du[i] = sys.wall.α .* laplacian(θarrays[i]) ./ dx ./ dx + Hₗ .* (θarray_temp_wall[i] - θarrays[i]) .* dx
-    end
-
-
-    return du
-end
-
 
 
 end

@@ -1,6 +1,6 @@
 module Thermomodel
 
-export zhang2002model!,dMdtzhang2002model,dynamicsmodel,dMdtdynamicsmodel
+export zhang2002model!,dMdtzhang2002model,dynamicsmodel,dMdtdynamicsmodel,wallmodel,liquidmodel
 
 using ..Systems,..Tools
 
@@ -215,5 +215,77 @@ function dMdtdynamicsmodel(Xpvapor::Array{Tuple{Float64,Float64},1},θ::Array{Fl
     return dMdt
 
 end
+
+
+function wallmodel(θarray::Array{Float64,1},p::PHPSystem)
+    sys = deepcopy(p)
+
+    du = zero(deepcopy(θarray))
+
+    γ = sys.vapor.γ
+    Hₗ = sys.liquid.Hₗ
+    He = sys.evaporator.He
+    dx = sys.wall.Xarray[2]-sys.wall.Xarray[1]
+
+
+    H = zero(deepcopy(θarray))
+    θarray_temp_flow = zero(deepcopy(θarray))
+    for i = 1:length(θarray)
+
+        index = sys.mapping.walltoliquid[i]
+
+        if index[2] == -1
+            P = sys.vapor.P[index[1]]
+            θarray_temp_flow[i] = real.((P .+ 0im).^((γ-1)/γ))
+
+            H = He
+        else
+            θliquidarrays = sys.liquid.θarrays
+            θarray_temp_flow[i] = θliquidarrays[index[1]][index[2]]
+
+            H = Hₗ
+        end
+    end
+
+#     print("θ=",θarray_temp_flow[1:20],"\n")
+
+
+    du = sys.wall.α .* laplacian(θarray) ./ dx ./ dx + H .* (θarray_temp_flow - θarray) .* dx
+
+#     du = sys.wall.α .* laplacian(θarray) ./ dx ./ dx
+
+    return du
+end
+
+function liquidmodel(θarrays,p::PHPSystem)
+    sys = deepcopy(p)
+
+    du = zero.(deepcopy(θarrays))
+
+    γ = sys.vapor.γ
+    Hₗ = sys.liquid.Hₗ
+
+
+
+    θarray_temp_wall = zero.(deepcopy(θarrays))
+    for i = 1:length(θarrays)
+
+        dx = sys.wall.Xarray[2]-sys.wall.Xarray[1]
+
+        indexes = sys.mapping.liquidtowall[i]
+
+        for j = 1:length(indexes)
+            θarray_temp_wall[i][j] = sys.wall.θarray[indexes[j]]
+        end
+
+        du[i] = sys.wall.α .* laplacian(θarrays[i]) ./ dx ./ dx + Hₗ .* (θarray_temp_wall[i] - θarrays[i]) .* dx
+    end
+
+
+    return du
+end
+
+
+
 
 end
