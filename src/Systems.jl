@@ -43,6 +43,7 @@ mutable struct Evaporator
     He::Float64
     θe::Float64
     Xe::Array{Tuple{Float64,Float64},1}
+    We::Array{Float64,1}
 end
 
 """
