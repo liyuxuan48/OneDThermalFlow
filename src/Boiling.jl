@@ -2,7 +2,7 @@ module Boiling
 
 using ..Systems,..Tools
 
-export nucleateboiling,getnewδ,crossAtoδ,getcrossAδ,getnewθarrays,getnewXarrays,getinsertindex,getarrayindex,getnewXp,getnewδ,getnewM
+export nucleateboiling
 
 
 function nucleateboiling(sys,Xvapornew,Pinsert)
@@ -60,7 +60,8 @@ function nucleateboiling(sys,Xvapornew,Pinsert)
     sysnew.vapor.P = Pnew
     sysnew.vapor.δ = δnew
 
-    walltoliquid, liquidtowall = constructmapping(sysnew.liquid.Xarrays ,sysnew.wall.Xarray)
+    walltoliquid,liquidtowall = constructmapping(sysnew.liquid.Xarrays ,sysnew.wall.Xarray)
+    # print(typeof(walltoliquid),"\n",typeof(walltoliquid),"\n")
     sysnew.mapping = Mapping(walltoliquid,liquidtowall)
 
 return sysnew
