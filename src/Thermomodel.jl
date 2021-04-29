@@ -200,8 +200,8 @@ function dMdtdynamicsmodel(Xpvapor::Array{Tuple{Float64,Float64},1},θ::Array{Fl
 
             for j in length(indexes)
 
-#                 print("index",size(indexes),"\n")
-#                 print("θarray",size(sys.wall.θarray),"\n")
+                # print("index",indexes,"\n")
+                # print("θarray",sys.wall.θarray,"\n")
 
                 dMdt[i] += He*dx*(sys.wall.θarray[indexes[j]] - θ[i])
 
@@ -227,6 +227,13 @@ function wallmodel(θarray::Array{Float64,1},p::PHPSystem)
     He = sys.evaporator.He
     dx = sys.wall.Xarray[2]-sys.wall.Xarray[1]
 
+    Xarray = sys.wall.Xarray
+    Wearray = getwallWearray(Xarray,sys)
+
+    Hwc = sys.condenser.Hwc
+    θc  = sys.condenser.θc
+    Xc  = sys.condenser.Xc
+    hevisidec=ifamong.(Xarray,[Xc])
 
     H = zero(deepcopy(θarray))
     θarray_temp_flow = zero(deepcopy(θarray))
@@ -250,7 +257,7 @@ function wallmodel(θarray::Array{Float64,1},p::PHPSystem)
 #     print("θ=",θarray_temp_flow[1:20],"\n")
 
 
-    du = sys.wall.α .* laplacian(θarray) ./ dx ./ dx + H .* (θarray_temp_flow - θarray) .* dx
+    du = sys.wall.α .* laplacian(θarray) ./ dx ./ dx + H .* (θarray_temp_flow - θarray) .* dx + Wearray .* dx + hevisidec .* Hwc .* (θc .- θarray) .* dx
 
 #     du = sys.wall.α .* laplacian(θarray) ./ dx ./ dx
 

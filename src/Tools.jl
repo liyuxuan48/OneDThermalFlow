@@ -1,6 +1,6 @@
 module Tools
 
-export getheight,XMtovec,XMδtovec,vectoXM,vectoXMδ,XptoLvaporplug,XptoLliquidslug,getXpvapor,XpvaportoLoverlap,ifamongone,ifamong,settemperature!,laplacian,constructXarrays,walltoliquidmapping,liquidtowallmapping,truncate,constructmapping,duliquidθtovec,duwallθtovec,liquidθtovec,wallθtovec,updateXarrays,getcurrentsys
+export getheight,XMtovec,XMδtovec,vectoXM,vectoXMδ,XptoLvaporplug,XptoLliquidslug,getXpvapor,XpvaportoLoverlap,ifamongone,ifamong,settemperature!,laplacian,constructXarrays,walltoliquidmapping,liquidtowallmapping,truncate,constructmapping,duliquidθtovec,duwallθtovec,liquidθtovec,wallθtovec,updateXarrays,getcurrentsys,getwallWearray
 
 using ..Systems
 using LinearAlgebra
@@ -566,5 +566,20 @@ function getcurrentsys(u,sys0)
     return sysnew
 end
 
+function getwallWearray(Xarray,p::PHPSystem)
+
+    Wearray = zero(deepcopy(Xarray))
+
+
+    for i = 1:length(Xarray)
+        for j = 1:length(p.evaporator.Xe)
+            if ifamongone(Xarray[i],p.evaporator.Xe[j])
+                Wearray[i] = p.evaporator.We[j]
+            end
+        end
+    end
+
+    return Wearray
+end
 
 end
