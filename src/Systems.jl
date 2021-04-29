@@ -65,7 +65,6 @@ mutable struct Condenser
     θc::Float64
     Xc::Array{Tuple{Float64,Float64},1}
     Hwc::Float64
-
 end
 
 """
