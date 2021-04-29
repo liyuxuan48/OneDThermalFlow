@@ -23,6 +23,7 @@ mutable struct Tube
     L::Float64
     L2D::Float64
     angle::Float64
+    closed::Bool
 end
 
 """
