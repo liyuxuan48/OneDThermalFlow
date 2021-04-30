@@ -30,7 +30,7 @@ function soltoResult(sol,sys0) #only good for one calculation per time point, no
     end
 
     for j in 1:size(M)[2]
-        Lvaporplug[:,j]=XptoLvaporplug(Xp[:,j], sys0.tube.L)
+        Lvaporplug[:,j]=XptoLvaporplug(Xp[:,j], sys0.tube.L, sys0.tube.closedornot)
     end
 
     # get P from M and γ

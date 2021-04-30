@@ -23,7 +23,7 @@ mutable struct Tube
     L::Float64
     L2D::Float64
     angle::Float64
-    closed::Bool
+    closedornot::Bool
 end
 
 """
@@ -131,6 +131,8 @@ PHPSystem is a struct containing
 
 mutable struct Wall
     α::Float64
+    Δt::Float64
+    Xstations::Array{Float64,1}
     Xarray::Array{Float64,1}
     θarray::Array{Float64,1}
 end

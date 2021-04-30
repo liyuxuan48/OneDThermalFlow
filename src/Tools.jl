@@ -66,11 +66,34 @@ function XMtovec(Xp::Array{Tuple{Float64,Float64},1},dXdt::Array{Tuple{Float64,F
             # input M
             u[4*length(Xp) + i] = M[i]
         end
-    else
-        println("the lengthes of X and dXdt and M do not match!")
+
+        return u
     end
 
-    return u
+    if (length(Xp) == length(dXdt)) && (length(Xp) == length(M))
+
+        u=zeros(5*length(Xp))
+
+        for i = 1:length(Xp)
+
+            # input Xp
+            u[2*i-1] = Xp[i][1]
+            u[2*i] = Xp[i][end]
+
+            # input dXdt
+            u[2*length(Xp) + 2*i-1] = dXdt[i][1]
+            u[2*length(Xp) + 2*i] = dXdt[i][end]
+        end
+
+        for i = 1:length(M)
+            # input M
+            u[4*length(Xp) + i] = M[i]
+        end
+
+        return u
+    end
+            println("the lengthes of X and dXdt and M do not match!")
+            return "error"
 
 end
 
@@ -96,29 +119,59 @@ end
 
 function vectoXM(u::Array{Float64,1})
 
-    maxindex = Integer( (length(u) - 1)/5 )
+    if mod(length(u),5) == 1
+        maxindex = Integer( (length(u) - 1)/5 )
 
-    Xp = map(tuple, zeros(maxindex), zeros(maxindex))
-    dXdt = map(tuple, zeros(maxindex), zeros(maxindex))
-    M = zeros(maxindex+1)
+        Xp = map(tuple, zeros(maxindex), zeros(maxindex))
+        dXdt = map(tuple, zeros(maxindex), zeros(maxindex))
+        M = zeros(maxindex+1)
 
-    for i = 1:maxindex
+        for i = 1:maxindex
 
-        # input Xp
-        Xp[i] = (u[2*i-1],u[2*i])
+            # input Xp
+            Xp[i] = (u[2*i-1],u[2*i])
 
-        # input dXdt
-        dXdt[i] = (u[2*maxindex + 2*i-1],u[2*maxindex + 2*i])
+            # input dXdt
+            dXdt[i] = (u[2*maxindex + 2*i-1],u[2*maxindex + 2*i])
+        end
+
+        for i = 1:(maxindex+1)
+
+            # input M
+            M[i] = u[4*maxindex + i]
+
+        end
+
+        return Xp,dXdt,M
     end
 
-    for i = 1:(maxindex+1)
+    if mod(length(u),5) == 0
+        maxindex = div(length(u),5)
 
-        # input M
-        M[i] = u[4*maxindex + i]
+        Xp = map(tuple, zeros(maxindex), zeros(maxindex))
+        dXdt = map(tuple, zeros(maxindex), zeros(maxindex))
+        M = zeros(maxindex)
 
+        for i = 1:maxindex
+
+            # input Xp
+            Xp[i] = (u[2*i-1],u[2*i])
+
+            # input dXdt
+            dXdt[i] = (u[2*maxindex + 2*i-1],u[2*maxindex + 2*i])
+        end
+
+        for i = 1:maxindex
+
+            # input M
+            M[i] = u[4*maxindex + i]
+
+        end
+
+        return Xp,dXdt,M
     end
 
-    return Xp,dXdt,M
+return "error"
 
 end
 
@@ -129,7 +182,7 @@ end
 """
 
 function vectoXMδ(u::Array{Float64,1})
-
+if mod(length(u),6) == 2
     maxindex = Integer( (length(u) - 2)/6 )
 
     Xp = map(tuple, zeros(maxindex), zeros(maxindex))
@@ -154,6 +207,36 @@ function vectoXMδ(u::Array{Float64,1})
     end
 
     return Xp,dXdt,M,δ
+end
+
+if mod(length(u),6) == 0
+    maxindex = div(length(u),6)
+
+    Xp = map(tuple, zeros(maxindex), zeros(maxindex))
+    dXdt = map(tuple, zeros(maxindex), zeros(maxindex))
+    M = zeros(maxindex)
+    δ = zeros(maxindex)
+
+    for i = 1:maxindex
+
+        # input Xp
+        Xp[i] = (u[2*i-1],u[2*i])
+
+        # input dXdt
+        dXdt[i] = (u[2*maxindex + 2*i-1],u[2*maxindex + 2*i])
+    end
+
+    for i = 1:maxindex
+
+        # input M
+        M[i] = u[4*maxindex + i]
+        δ[i] = u[5*maxindex + i]
+    end
+
+    return Xp,dXdt,M,δ
+end
+
+return "error"
 
 end
 
@@ -164,8 +247,9 @@ end
         L     ::   the length of the 1D tube
 """
 
-function XptoLvaporplug(Xp::Array{Tuple{Float64,Float64},1},L::Float64)
+function XptoLvaporplug(Xp::Array{Tuple{Float64,Float64},1},L::Float64,closedornot::Bool)
 
+if closedornot == false
     maxindex = length(Xp) + 1
     Lvaporplug = zeros(maxindex)
 
@@ -181,6 +265,25 @@ function XptoLvaporplug(Xp::Array{Tuple{Float64,Float64},1},L::Float64)
     end
 
     return Lvaporplug
+end
+
+if closedornot == true
+    maxindex = length(Xp)
+    Lvaporplug = zeros(maxindex)
+
+    Lvaporplug[1] = mod((Xp[1][1]-Xp[end][end]),L)
+    # Lvaporplug[end] = L-Xp[end][end]
+
+    if maxindex > 1
+        for i = 2:maxindex
+
+            Lvaporplug[i] = Xp[i][1] - Xp[i-1][end]
+
+        end
+    end
+
+    return Lvaporplug
+end
 
 end
 
@@ -190,14 +293,14 @@ end
         Xp    ::   the locations of all interfaces
 """
 
-function XptoLliquidslug(Xp::Array{Tuple{Float64,Float64},1})
+function XptoLliquidslug(Xp::Array{Tuple{Float64,Float64},1},L::Float64)
 
     Lliquidslug = zeros(length(Xp))
 
 
         for i = 1: length(Xp)
 
-        Lliquidslug[i] = Xp[i][end] - Xp[i][1]
+        Lliquidslug[i] = mod((Xp[i][end] - Xp[i][1]),L)
 
         end
 
@@ -215,16 +318,27 @@ end
         L     ::   the length of the 1D tube
 """
 
-function getXpvapor(Xp,L)
+function getXpvapor(Xp,L,closedornot)
+
     Xpvapor=deepcopy(Xp)
 
-    Xpvapor[1]=(0.0,Xp[1][1])
+    if closedornot == false
+        Xpvapor[1]=(0.0,Xp[1][1])
 
-    for i = 2:(length(Xp))
-        Xpvapor[i]=(Xp[i-1][end],Xp[i][1])
+        for i = 2:(length(Xp))
+            Xpvapor[i]=(Xp[i-1][end],Xp[i][1])
+        end
+
+        push!(Xpvapor,(Xp[end][end],L))
     end
 
-    push!(Xpvapor,(Xp[end][end],L))
+    if closedornot == true
+        Xpvapor[1]=(Xp[end][end],Xp[1][1])
+
+        for i = 2:(length(Xp))
+            Xpvapor[i]=(Xp[i-1][end],Xp[i][1])
+        end
+    end
 
     return Xpvapor
 end
@@ -362,7 +476,7 @@ end
 function constructXarrays(X0::Array{Tuple{Float64,Float64},1},N,θinitial,L)
     Xarrays=Array{Array{Float64, 1}, 1}(undef, length(X0))
 
-    Lliquid = XptoLliquidslug(X0)
+    Lliquid = XptoLliquidslug(X0,L)
 
     Nliquid =  floor.(Int, N.*Lliquid./L)
 
@@ -552,7 +666,7 @@ function getcurrentsys(u,sys0)
     sysnew.liquid.Xarrays = updateXarrays(Xp,sysnew.liquid.θarrays)
 
 
-    Lvaporplug = XptoLvaporplug(Xp,sys0.tube.L)
+    Lvaporplug = XptoLvaporplug(Xp,sys0.tube.L,sys0.tube.closedornot)
     γ = sys0.vapor.γ
     P = real.((M./Lvaporplug .+ 0im).^(γ))
     sysnew.vapor.P = P

@@ -16,8 +16,9 @@ function nucleateboiling(sys,Xvapornew,Pinsert)
     γ = sys.vapor.γ
     Xarrays = sys.liquid.Xarrays
     θarrays = sys.liquid.θarrays
+    closedornot = sys.tube.closedornot
 
-    Lvaporplug =    XptoLvaporplug(Xp,sys.tube.L)
+    Lvaporplug =    XptoLvaporplug(Xp,sys.tube.L,sys.tube.closedornot)
     M = P.^(1/γ).* Lvaporplug
 
 
@@ -37,7 +38,7 @@ function nucleateboiling(sys,Xvapornew,Pinsert)
     Xpnew = getnewXp(Xp,index,Xvapornew)
     Mnew = getnewM(M,index,Minsert)
 
-    Lvaporplugnew = XptoLvaporplug(Xpnew,L)
+    Lvaporplugnew = XptoLvaporplug(Xpnew,L,closedornot)
     Pnew = (Mnew./Lvaporplugnew).^γ
 
     Xarraysnew = getnewXarrays(index,Xp,Xpnew,Xarrays,L)
