@@ -21,7 +21,7 @@ function nucleateboiling(sys,Xvapornew,Pinsert)
     Lvaporplug =    XptoLvaporplug(Xp,sys.tube.L,sys.tube.closedornot)
     M = P.^(1/γ).* Lvaporplug
 
-
+    index = getinsertindex(Xp,Xvapornew)
 
 
 
@@ -33,7 +33,7 @@ function nucleateboiling(sys,Xvapornew,Pinsert)
     Linsert = Xvapornew[end] - Xvapornew[1]
     Minsert = Pinsert.^(1/γ).* Linsert
 
-    index = getinsertindex(Xp,Xvapornew)
+    # index = getinsertindex(Xp,Xvapornew)
     δnew = getnewδ(δ,index,Xvapornew,ρ,d,Minsert) # mass conservation
     Xpnew = getnewXp(Xp,index,Xvapornew)
     Mnew = getnewM(M,index,Minsert)
@@ -77,6 +77,10 @@ function getnewδ(δ,index,Xvapornew,ρ,d,Minsert)
     insert!(crossAfilms,index+1,insertcrossA)
 
     δnew = crossAtoδ.([d],crossAfilms)
+end
+
+function getnewMδ(δ,index,Xvapornew,ρ,d,Minsert)
+
 end
 
 

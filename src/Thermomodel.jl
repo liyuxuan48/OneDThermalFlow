@@ -230,6 +230,7 @@ function dMdtdynamicsmodel(Xpvapor::Array{Tuple{Float64,Float64},1},θ::Array{Fl
 
         dx = sys.wall.Xarray[2]-sys.wall.Xarray[1]
 
+
     for i = 1:length(Xpvapor)
         indexes = findall( x -> (mod(x[1],length(Xpvapor)) == mod(i,length(Xpvapor)) && (x[end] == -1)), sys.mapping.walltoliquid)
 
@@ -283,9 +284,10 @@ function wallmodel(θarray::Array{Float64,1},p::PHPSystem)
                     P = sys.vapor.P[index[1]]
                 end
 
+
                 if sys.tube.closedornot == true
                     if index[1] > length(sys.vapor.P)
-                        P = sys.vapor.P[mod(index[1],length(sys.vapor.P))]
+                        P = sys.vapor.P[index[1]-length(sys.vapor.P)]
                     else
                         P = sys.vapor.P[index[1]]
                     end
@@ -303,7 +305,7 @@ function wallmodel(θarray::Array{Float64,1},p::PHPSystem)
         end
 
 
-        du = sys.wall.α .* laplacian(θarray) ./ dx ./ dx + H .* (θarray_temp_flow - θarray) .* dx + Wearray .* dx + hevisidec .* Hwc .* (θc .- θarray) .* dx
+        du = sys.wall.α .* laplacian(θarray,sys.tube.closedornot) ./ dx ./ dx + H .* (θarray_temp_flow - θarray) .* dx + Wearray .* dx + hevisidec .* Hwc .* (θc .- θarray) .* dx
         return du
 end
 

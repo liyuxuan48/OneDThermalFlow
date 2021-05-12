@@ -1,6 +1,6 @@
 module Tools
 
-export getheight,XMtovec,XMδtovec,vectoXM,vectoXMδ,XptoLvaporplug,XptoLliquidslug,getXpvapor,XpvaportoLoverlap,ifamongone,ifamong,settemperature!,laplacian,constructXarrays,walltoliquidmapping,liquidtowallmapping,truncate,constructmapping,duliquidθtovec,duwallθtovec,liquidθtovec,wallθtovec,updateXarrays,getcurrentsys,getwallWearray
+export getheight,XMtovec,XMδtovec,vectoXM,vectoXMδ,XptoLvaporplug,XptoLliquidslug,getXpvapor,XpvaportoLoverlap,ifamongone,ifamong,settemperature!,laplacian,constructXarrays,walltoliquidmapping,liquidtowallmapping,truncate,constructmapping,duliquidθtovec,duwallθtovec,liquidθtovec,wallθtovec,updateXarrays,getcurrentsys,getwallWearray,modX!
 
 using ..Systems
 using LinearAlgebra
@@ -277,7 +277,7 @@ if closedornot == true
     if maxindex > 1
         for i = 2:maxindex
 
-            Lvaporplug[i] = Xp[i][1] - Xp[i-1][end]
+            Lvaporplug[i] = mod((Xp[i][1] - Xp[i-1][end]),L)
 
         end
     end
@@ -401,8 +401,31 @@ end
 """
 
 function ifamongone(value::Float64, range::Tuple{Float64,Float64})
-    return (value >= range[1]) && (value <= range[2]) ? true : false
+    return (value >= range[1]) && (value <= range[end]) ? true : false
 end
+
+"""
+    This is a function for a closedloop to determine if the value in in the range that crosses the end point
+
+    value ::  a value
+    range ::  an array
+"""
+
+function ifamongone(value::Float64, range::Array{Float64,1}, L::Float64)
+    return ((value >= range[1]) && (value <= L)) || ((value <= range[end]) && (value >= 0.0)) ? true : false
+end
+
+"""
+    This is a function to see if the value in in the range
+
+    value ::  a value
+    range ::  an array
+"""
+
+function ifamongone(value::Float64, range::Array{Float64,1})
+    return (value >= range[1]) && (value <= range[end]) ? true : false
+end
+
 
 """
     This is a general function to determine if the value is in any of an array of range
@@ -446,7 +469,8 @@ end
     u    ::  an array
 """
 
-function laplacian(u)
+
+function laplacian(u,periodic=false)
     unew = deepcopy(u)
 
     dl = ones(length(u)-1)
@@ -457,9 +481,18 @@ function laplacian(u)
 
     unew = A*u
 
+    if periodic
+
+        unew[1]   = u[2] - 2*u[1] + u[end]
+
+        unew[end] = u[1] - 2*u[end] + u[end-1]
+
+    else
+
     # zero gradient B.C.
     unew[1]   = unew[2]
     unew[end] = unew[end-1]
+    end
 
     return (unew)
 end
@@ -481,7 +514,12 @@ function constructXarrays(X0::Array{Tuple{Float64,Float64},1},N,θinitial,L)
     Nliquid =  floor.(Int, N.*Lliquid./L)
 
     for i = 1:length(Xarrays)
-        Xarrays[i] = range(X0[i][1], X0[i][2], length=Nliquid[i])
+        if X0[i][1] < X0[i][2]
+            Xarrays[i] = range(X0[i][1], X0[i][2], length=Nliquid[i])
+        else
+            Xarrays[i] = range(X0[i][1], X0[i][2]+L, length=Nliquid[i]) .- L
+            Xarrays[i] = mod.(Xarrays[i], L)
+        end
     end
 
     θarrays = deepcopy(Xarrays)
@@ -519,21 +557,112 @@ end
     Xarrays :: Array{Array{Float64,1},1}
 """
 
-function walltoliquidmapping(Xwall,Xarrays)
+function walltoliquidmapping(Xwall,Xarrays,closedornot,L)
+
+
+if closedornot == false
 for i = 1:length(Xarrays)
+
     if Xarrays[i][end] < Xwall
 
     else
         for j = 1:length(Xarrays[i])
-            if j == 1 && Xarrays[i][j] >= Xwall
+            if (j == 1 && Xarrays[i][j] >= Xwall)
                     return (i,-1)
                     elseif Xarrays[i][j] >= Xwall && Xarrays[i][j-1] <= Xwall
-                        return (i,j)
+                   return (i,j)
             end
         end
     end
+
 end
+
     return (length(Xarrays)+1,-1) # for closed end tube
+
+end
+
+if closedornot == true
+
+    for i = 1:length(Xarrays)
+
+#         println((Xarrays[i][end] < Xarrays[i][1]) && ifamongone(Xwall,Xarrays[i],L))
+
+
+        # firstly deal with the case in a crossing starting point liquid slug
+        if (Xarrays[i][end] < Xarrays[i][1]) && ifamongone(Xwall,Xarrays[i],L)
+
+
+            if (Xwall <= Xarrays[i][end])
+
+                for index = 1:length(Xarrays[i])-1
+                    j = length(Xarrays[i]) - index + 1
+
+                    if (Xarrays[i][j] <= Xwall) || ((Xarrays[i][j] >= Xwall) && (Xarrays[i][j] <= Xarrays[i][j-1]))
+                        return (i,j)
+                    end
+                end
+
+            end
+
+            if (Xwall >= Xarrays[i][1])
+
+                for j = 1:length(Xarrays[i])-1
+
+                    if (Xarrays[i][j] >= Xwall) || ((Xarrays[i][j] <= Xwall) && (Xarrays[i][j+1] <= Xarrays[i][j]))
+                        return (i,j)
+                    end
+                end
+
+            end
+        end
+
+
+
+        if (Xarrays[i][end] < Xarrays[i][1]) && !ifamongone(Xwall,Xarrays[i],L)
+
+            if ((i > 1) && (Xwall >= Xarrays[i-1][end])) || ((i == 1) && (Xwall >= Xarrays[end][end]))
+                 return (i,-1)
+            end
+
+        end
+
+        # then deal with the normal liquid slug
+        if (Xarrays[i][end] >= Xarrays[i][1]) && ifamongone(Xwall,Xarrays[i])
+
+            for j = 1:length(Xarrays[i])
+
+                if (Xarrays[i][j] >= Xwall)
+                    return (i,j)
+                end
+            end
+        end
+
+
+        # then deal with the normal liquid slug
+        if (Xarrays[i][end] >= Xarrays[i][1]) && !ifamongone(Xwall,Xarrays[i])
+            if ((i > 1) && (Xarrays[i][1] <= Xarrays[i-1][end])) || ((i == 1) && (Xarrays[i][1] <= Xarrays[end][end]))
+                if ((i > 1) && ((Xwall >= Xarrays[i-1][end]) || (Xwall <= Xarrays[i][1])) || ((i == 1) && ((Xwall >= Xarrays[end][end]) || (Xwall <= Xarrays[i][1]))))
+
+                            return (i,-1)
+
+                end
+            end
+
+
+
+            if ((i > 1) && (Xarrays[i][1] >= Xwall) && (Xarrays[i-1][end] <= Xwall)) || ((i == 1) && (Xarrays[i][1] >= Xwall) && (Xarrays[end][end] <= Xwall))
+                    return (i,-1)
+                end
+
+        end
+
+
+    end
+
+    return ("error")
+
+end
+
 end
 
 """
@@ -576,11 +705,11 @@ end
     liquidtowall : Array{Array{Int64,1},1}
 """
 
-function constructmapping(Xarrays,Xwallarray)
+function constructmapping(Xarrays,Xwallarray,closedornot,L)
     walltoliquid = Array{Tuple{Int64,Int64},1}(undef, length(Xwallarray))
 
     for i = 1:length(Xwallarray)
-        walltoliquid[i] = walltoliquidmapping(Xwallarray[i],Xarrays)
+        walltoliquid[i] = walltoliquidmapping(Xwallarray[i],Xarrays,closedornot,L)
     end
 
     liquidtowall = truncate(Xarrays)
@@ -651,6 +780,7 @@ function getcurrentsys(u,sys0)
 
 
     Xp,dXdt,M,δ = vectoXMδ(u[1:indexes[1]-1])
+    modX!(Xp,sys0.tube.L)
     θwallrec = u[indexes[1]+1:indexes[2]-1]
 
     for i = 1:length(indexes)-2
@@ -674,7 +804,7 @@ function getcurrentsys(u,sys0)
 
     sysnew.wall.θarray = θwallrec
 
-    walltoliquid, liquidtowall = constructmapping(sysnew.liquid.Xarrays ,sysnew.wall.Xarray)
+    walltoliquid, liquidtowall = constructmapping(sysnew.liquid.Xarrays ,sysnew.wall.Xarray, sysnew.tube.closedornot, sysnew.tube.L)
     sysnew.mapping = Mapping(walltoliquid,liquidtowall)
 
     return sysnew
@@ -695,5 +825,16 @@ function getwallWearray(Xarray,p::PHPSystem)
 
     return Wearray
 end
+
+function modX!(Xp,L)
+    for i = 1:length(Xp)
+         Xp[i] = mod.(Xp[i],L)
+    end
+
+    return Xp
+end
+
+
+
 
 end
