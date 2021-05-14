@@ -434,7 +434,7 @@ end
     range ::  an array of tuple
 """
 
-function ifamong(value::Float64, X::Array{Tuple{Float64,Float64},1})
+function ifamong(value, X)
 
     return Bool(sum(ifamongone.(value,X)))
 end
@@ -752,13 +752,22 @@ end
     When having a new Xp because of dynamics, Xarrays need to be updated, too.
 """
 
-function updateXarrays(Xp,θarrays)
+function updateXarrays(Xp,θarrays,L)
 
     Xarrays = deepcopy(θarrays)
 
-    for i = 1:length(Xp)
-        Xarrays[i] = LinRange(Xp[i][1],Xp[i][2],length(θarrays[i]))
+    for i = 1:length(Xarrays)
+        if Xp[i][1] < Xp[i][2]
+            Xarrays[i] = range(Xp[i][1], Xp[i][2], length=length(Xarrays[i]))
+        else
+            Xarrays[i] = range(Xp[i][1], Xp[i][2]+L, length=length(Xarrays[i])) .- L
+            Xarrays[i] = mod.(Xarrays[i], L)
+        end
     end
+
+    # for i = 1:length(Xp)
+    #     Xarrays[i] = LinRange(Xp[i][1],Xp[i][2],length(θarrays[i]))
+    # end
 
     return Xarrays
 end
@@ -793,7 +802,7 @@ function getcurrentsys(u,sys0)
     sysnew.liquid.Xp = Xp
     sysnew.liquid.dXdt = dXdt
     sysnew.liquid.θarrays = θliquidrec
-    sysnew.liquid.Xarrays = updateXarrays(Xp,sysnew.liquid.θarrays)
+    sysnew.liquid.Xarrays = updateXarrays(Xp,sysnew.liquid.θarrays,sysnew.tube.L)
 
 
     Lvaporplug = XptoLvaporplug(Xp,sys0.tube.L,sys0.tube.closedornot)

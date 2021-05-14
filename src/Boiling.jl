@@ -21,7 +21,7 @@ function nucleateboiling(sys,Xvapornew,Pinsert)
     Lvaporplug =    XptoLvaporplug(Xp,sys.tube.L,sys.tube.closedornot)
     M = P.^(1/γ).* Lvaporplug
 
-    index = getinsertindex(Xp,Xvapornew)
+    index = getinsertindex(Xp,Xvapornew,closedornot)
 
 
 
@@ -34,16 +34,17 @@ function nucleateboiling(sys,Xvapornew,Pinsert)
     Minsert = Pinsert.^(1/γ).* Linsert
 
     # index = getinsertindex(Xp,Xvapornew)
-    δnew = getnewδ(δ,index,Xvapornew,ρ,d,Minsert) # mass conservation
-    Xpnew = getnewXp(Xp,index,Xvapornew)
-    Mnew = getnewM(M,index,Minsert)
+    δnew = getnewδ(δ,index,Xvapornew,ρ,d,Minsert,closedornot) # mass conservation
+    Xpnew = getnewXp(Xp,index,Xvapornew,closedornot)
+    Mnew = getnewM(M,index,Minsert,closedornot)
 
     Lvaporplugnew = XptoLvaporplug(Xpnew,L,closedornot)
     Pnew = (Mnew./Lvaporplugnew).^γ
 
-    Xarraysnew = getnewXarrays(index,Xp,Xpnew,Xarrays,L)
-    θarraysnew = getnewθarrays(index,Xp,Xpnew,Xarrays,θarrays,L)
+    Xarraysnew = getnewXarrays(index,Xp,Xpnew,Xarrays,L,closedornot)
+    θarraysnew = getnewθarrays(index,Xp,Xpnew,Xarrays,θarrays,L,closedornot)
 
+# only for open loop!
     dXdtnew = deepcopy(dXdt) # momentum conservation
     insert!(dXdtnew,index+1,dXdtnew[index])
 
@@ -61,7 +62,7 @@ function nucleateboiling(sys,Xvapornew,Pinsert)
     sysnew.vapor.P = Pnew
     sysnew.vapor.δ = δnew
 
-    walltoliquid,liquidtowall = constructmapping(sysnew.liquid.Xarrays ,sysnew.wall.Xarray)
+    walltoliquid,liquidtowall = constructmapping(sysnew.liquid.Xarrays ,sysnew.wall.Xarray, sysnew.tube.closedornot, sysnew.tube.L)
     # print(typeof(walltoliquid),"\n",typeof(walltoliquid),"\n")
     sysnew.mapping = Mapping(walltoliquid,liquidtowall)
 
@@ -69,17 +70,17 @@ return sysnew
 end
 
 
-function getnewδ(δ,index,Xvapornew,ρ,d,Minsert)
+function getnewδ(δ,index,Xvapornew,ρ,d,Minsert,closedornot)
     Linsert = Xvapornew[end] - Xvapornew[1]
 
     crossAfilms = getcrossAδ.([d],δ)
-    insertcrossA = 0.5(crossAfilms[index] + crossAfilms[index+1]) - Minsert/ρ/Linsert
+    insertcrossA = (closedornot && index == length(crossAfilms)) ?  0.5(crossAfilms[index] + crossAfilms[1]) - Minsert/ρ/Linsert : 0.5(crossAfilms[index] + crossAfilms[index+1]) - Minsert/ρ/Linsert
     insert!(crossAfilms,index+1,insertcrossA)
 
     δnew = crossAtoδ.([d],crossAfilms)
 end
 
-function getnewMδ(δ,index,Xvapornew,ρ,d,Minsert)
+function getnewMδ(δ,index,Xvapornew,ρ,d,Minsert,closedornot)
 
 end
 
@@ -98,7 +99,7 @@ end
 
 
 
- function getnewθarrays(index,Xp,Xpnew,Xarrays,θarrays,L)
+ function getnewθarrays(index,Xp,Xpnew,Xarrays,θarrays,L,closedornot)
     θarraysnew = deepcopy(θarrays)
     Xarraysnew = deepcopy(Xarrays)
     arrayindex = getarrayindex(Xpnew[index][2],Xarrays[index])
@@ -112,7 +113,7 @@ end
 end
 
 
-function getnewXarrays(index,Xp,Xpnew,Xarrays,L)
+function getnewXarrays(index,Xp,Xpnew,Xarrays,L,closedornot)
     Xarraysnew = deepcopy(Xarrays)
     arrayindex = getarrayindex(Xpnew[index][2],Xarrays[index])
 
@@ -125,7 +126,7 @@ function getnewXarrays(index,Xp,Xpnew,Xarrays,L)
 end
 
 
-function getinsertindex(Xp,Xvapornew)
+function getinsertindex(Xp,Xvapornew,closedornot)
 
 for index = 1:length(Xp)
     if Xp[index][1] <= Xvapornew[1] && Xp[index][2] >= Xvapornew[2]
@@ -145,7 +146,7 @@ end
         return NaN
 end
 
-function getnewXp(Xp,index,Xvapornew)
+function getnewXp(Xp,index,Xvapornew,closedornot)
 
     Xpnew = deepcopy(Xp)
 
@@ -161,20 +162,20 @@ function getnewXp(Xp,index,Xvapornew)
     return Xpnew
 end
 
-function getnewδ(δ,Pinsert,index,Xvapornew)
+# function getnewδ(δ,Pinsert,index,Xvapornew,closedornot)
+#
+#     Linsert = Xvapornew[end] - Xvapornew[1]
+#     δnew = deepcopy(δ)
+#
+#     δavg = (δ[index]+δ[index+1])/2
+#     insert!(δnew, index+1,δavg)
+#
+#     return δnew
+# end
 
-    Linsert = Xvapornew[end] - Xvapornew[1]
-    δnew = deepcopy(δ)
-
-    δavg = (δ[index]+δ[index+1])/2
-    insert!(δnew, index+1,δavg)
-
-    return δnew
-end
 
 
-
-function getnewM(M,index,Minsert)
+function getnewM(M,index,Minsert,closedornot)
 
     Mnew = deepcopy(M)
 
